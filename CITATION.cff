@@ -1,8 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-  - family-names: "Wael Sahli"
-    email: "leawwael6@gmail.com"
+  - family-names: "Gajjala"
+    given-names: "Ashok"
+    email: "gajjalaashok75@gmail.com"
 title: "AI Video Translator"
 version: "1.0.0"
 date-released: "2026-06-15"
