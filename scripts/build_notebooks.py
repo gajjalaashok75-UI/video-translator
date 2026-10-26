@@ -91,6 +91,11 @@ attached to, not on your laptop.
 
 > ⏱️ First run takes 10–20 minutes: the package install pulls PyTorch and the ML
 > stack. Later runs in the same session are fast because the install is cached.
+>
+> **Python version:** this stack is verified on **3.10–3.12**. Colab's default
+> kernel is now 3.13, and several extras have no cp313 wheels yet, so the
+> install cell fails there. Switch the runtime to **Python 3.11** before
+> running: *Runtime → Change runtime type → Python 3.11 + GPU*.
 """
 
 CHECKS_MD = """
@@ -185,14 +190,37 @@ cmd = [
     "-e", f"{REPO_DIR}{PIP_EXTRAS}",
 ]
 print("Installing:", " ".join(cmd))
-# No `-q`: the install is the longest cell and the only place a real resolver
-# error shows up. Swallowing stderr here turns every failure into "a transient
-# download failure usually succeeds on a retry", which hides the actual cause.
-result = subprocess.run(cmd, text=True)
-if result.returncode != 0:
+print("Python:", sys.version.split()[0])
+# Stream pip to the notebook in real time and keep the full transcript, so a
+# failure shows exactly what was attempted and which package died instead of a
+# generic message with nothing to go on.
+proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                        text=True, bufsize=1)
+transcript = []
+for line in proc.stdout:
+    print(line, end="")
+    transcript.append(line)
+proc.wait()
+
+if proc.returncode != 0:
+    print()
+    print("=" * 60)
+    print("INSTALL FAILED. Full pip output above this line.")
+    print("=" * 60)
+    # `pyproject.toml` caps the interpreter at <3.13, and several extras in
+    # this stack (paddlepaddle 2.6.x, opencv 4.10.0.84, the pinned torch
+    # wheel) have no cp313 wheels yet, so pip falls back to a source build and
+    # fails. Surface that plainly instead of burying it in the scrollback.
+    if sys.version_info >= (3, 13):
+        raise SystemExit(
+            "This stack is only verified on Python 3.10-3.12: several extras "
+            "(paddlepaddle 2.6.x, opencv 4.10.0.84, the pinned torch wheel) "
+            "have no cp313 wheels, so pip tries to build from source and "
+            "fails. Switch the runtime to Python 3.11 (Colab: Runtime -> "
+            "Change runtime type -> Python 3.11 + GPU) and re-run this cell.")
     raise SystemExit(
-        "The install failed. Read the error above this line for the real "
-        "cause (a missing cp313 wheel, an unresolvable pin, a gated model). "
+        "The install failed. Read the full pip output above this line for the "
+        "real cause (a missing wheel, an unresolvable pin, a gated model). "
         "Re-run this cell after fixing it.")
 print("Install complete.")
 """
@@ -278,7 +306,8 @@ TROUBLESHOOT_MD = """
 | Symptom | Fix |
 |---|---|
 | `The server did not become ready` | Re-run the install cell; a partial install is the usual cause. Check the log output above the error. |
-| `The install failed. ... transient download failure` | The generic message hides the real error. Re-run the cell and read the full pip output above the `SystemExit` — the cause is usually a missing wheel for this Python version or an unresolvable pin. |
+| `The install failed. ... This stack is only verified on Python 3.10-3.12` | Colab's default kernel is now 3.13 and several extras have no cp313 wheels. Switch the runtime to **Python 3.11** (*Runtime → Change runtime type → Python 3.11 + GPU*) and re-run this cell. |
+| `The install failed. ... Read the full pip output above` | A different resolver error. Scroll up inside this cell to see which package failed to build. |
 | Out of GPU memory during a render | Use the `FAST` preset (no lip-sync), or process a shorter clip. |
 | `ffmpeg not found` | Re-run step 1; on Colab and Kaggle the cell installs it. |
 | The URL does not open | The link is only reachable from inside the VM. Re-run step 4 to get a fresh proxy URL, and keep the notebook open. |
@@ -290,13 +319,14 @@ TROUBLESHOOT_MD = """
 # Platform-specific cells
 # ---------------------------------------------------------------------------
 COLAB_HINT = """
-In Colab: **Runtime → Change runtime type → T4 GPU** (or any GPU). Then
-**Runtime → Run all**.
+In Colab: **Runtime → Change runtime type → Python 3.11 + T4 GPU** (the 3.13
+default is not supported by this stack yet). Then **Runtime → Run all**.
 """
 
 KAGGLE_HINT = """
-In Kaggle: **Settings → Accelerator → GPU T4 x2** (or P100), and turn
-**Internet** on. Then **Run → Run all**.
+In Kaggle: **Settings → Accelerator → GPU T4 x2** (or P100), turn **Internet**
+on, and set the kernel to **Python 3.11** (Kaggle defaults to 3.13, which this
+stack does not support yet — see the note at the top). Then **Run → Run all**.
 """
 
 COLAB_SETUP_MD = """
@@ -304,6 +334,10 @@ COLAB_SETUP_MD = """
 
 Colab gives a GPU VM with a writable `/content`. We clone the repository there
 and install FFmpeg, which the pipeline shells out to for every render.
+
+**Runtime:** this stack needs **Python 3.11**, not Colab's 3.13 default —
+several extras have no cp313 wheels. Set *Runtime → Change runtime type →
+Python 3.11 + T4 GPU* before running this cell.
 """
 
 COLAB_SETUP_CODE = """
@@ -330,8 +364,12 @@ KAGGLE_SETUP_MD = """
 ## 0. Get the code (Kaggle)
 
 Kaggle mounts `/kaggle/working` as the writable, persistent directory, so the
-checkout and the runtime tree both go there. **Internet must be enabled** in the
-notebook settings, or the install and the model downloads will fail.
+checkout and the runtime tree both go there. **Internet must be enabled** in
+the notebook settings, or the install and the model downloads will fail.
+
+**Runtime:** Kaggle defaults to Python 3.13, which this stack does not support
+yet — set the kernel to **Python 3.11** in the notebook settings before
+running.
 """
 
 KAGGLE_SETUP_CODE = """
