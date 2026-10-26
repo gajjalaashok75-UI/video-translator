@@ -190,7 +190,7 @@ Everything runs locally — no data leaves your machine. Perfect for legal teams
 
 | Requirement | Details |
 |-------------|---------|
-| **Python** | 3.10–3.12 (3.11 recommended) |
+| **Python** | 3.10–3.13 (3.11 recommended) |
 | **PyTorch** | 2.5.1+ with CUDA 12.4+ |
 | **GPU** | NVIDIA GPU recommended (RTX 30/40/50 series supported) |
 | **VRAM** | 8GB minimum, 12GB+ recommended for HD lip-sync |

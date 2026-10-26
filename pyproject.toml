@@ -21,9 +21,11 @@ dependencies = [
     "gradio>=4.36.1",
 
     # Data / Numerics
-    # numpy<2 is required by the older torchaudio/demucs stack; pandas is not
-    # imported anywhere in src/ and its <2 pin cannot build on Python 3.13.
-    "numpy<2.0.0",
+    # numpy<2 is required by the older torchaudio/demucs stack, but 1.26.4 has
+    # no cp313 wheel and never will; on 3.13 numpy 2.x is the only installable
+    # option and is compatible with the torch 2.11+ line Colab/Kaggle ship.
+    "numpy<2.0.0; python_version<'3.13'",
+    "numpy>=2.0.0; python_version>='3.13'",
     "scipy",
     "pyarrow>=20.0.0",
 
@@ -33,12 +35,13 @@ dependencies = [
     "pydub==0.25.1",
 
     # Video I/O
-    # 4.10.0.84 predates cp313 wheels; relax the pin so the install resolves on
-    # every supported interpreter (the headless variant is what the pipeline
-    # actually imports).
     "ffmpeg-python==0.2.0",
-    "opencv-python>=4.10.0.84; sys_platform != 'linux'",
-    "opencv-python-headless>=4.10.0.84; sys_platform == 'linux'",
+    # 4.10.0.84 predates cp313 wheels; on 3.13 the already-installed 5.x is
+    # used instead. The headless variant is what the pipeline actually imports.
+    "opencv-python==4.10.0.84; python_version<'3.13'",
+    "opencv-python>=4.10.0.84; python_version>='3.13'",
+    "opencv-python-headless==4.10.0.84; python_version<'3.13'",
+    "opencv-python-headless>=4.10.0.84; python_version>='3.13'",
 
     # Environment & Config
     "python-dotenv==1.0.1",
@@ -107,10 +110,13 @@ tts = [
 # OCR — Visual text detection
 # =============================================================================
 ocr = [
-    # PaddlePaddle: GPU on Linux, CPU on Windows/macOS
-    "paddlepaddle-gpu==2.6.1; sys_platform == 'linux'",
-    "paddlepaddle==2.6.2; sys_platform != 'linux'",
-    "paddleocr==2.8.1",
+    # PaddleOCR is the preferred engine but `paddlepaddle-gpu==2.6.1` caps
+    # Python at 3.12 on PyPI and has no cp313 wheel, so on 3.13 only the
+    # fallback engine (EasyOCR) is installed. The visual-translation stage
+    # reports PaddleOCR as unavailable rather than failing the render.
+    "paddlepaddle-gpu==2.6.1; sys_platform == 'linux' and python_version<'3.13'",
+    "paddlepaddle==2.6.2; sys_platform != 'linux' and python_version<'3.13'",
+    "paddleocr==2.8.1; python_version<'3.13'",
     "easyocr",
     "langdetect",
 ]

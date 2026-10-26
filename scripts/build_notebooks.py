@@ -92,10 +92,9 @@ attached to, not on your laptop.
 > ⏱️ First run takes 10–20 minutes: the package install pulls PyTorch and the ML
 > stack. Later runs in the same session are fast because the install is cached.
 >
-> **Python version:** this stack is verified on **3.10–3.12**. Colab's default
-> kernel is now 3.13, and several extras have no cp313 wheels yet, so the
-> install cell fails there. Switch the runtime to **Python 3.11** before
-> running: *Runtime → Change runtime type → Python 3.11 + GPU*.
+> **Python version:** this stack runs on the default 3.13 as well as
+> 3.10–3.12. The only difference is visual text translation: PaddleOCR needs
+> Python ≤3.12, so on 3.13 the stage uses EasyOCR instead.
 """
 
 CHECKS_MD = """
@@ -182,23 +181,7 @@ INSTALL_CODE = """
 import subprocess
 import sys
 
-PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync,ocr]"
-
-# Check the interpreter *before* spending minutes on pip. Several pinned
-# extras have no cp313 wheels and never will (paddlepaddle-gpu==2.6.1 on
-# Linux, paddlepaddle==2.6.2 elsewhere, numpy<2.0.0 as a source build), so on
-# 3.13 the install is doomed regardless of what pip tries. Fail fast with the
-# package named, instead of letting pip churn for six minutes first.
-if sys.version_info >= (3, 13):
-    failing = ("paddlepaddle-gpu==2.6.1 (Linux), "
-               "paddlepaddle==2.6.2 (other platforms), "
-               "numpy<2.0.0 (source build)")
-    raise SystemExit(
-        "This stack is only verified on Python 3.10-3.12. Colab and Kaggle "
-        "now default to Python 3.13, and the following pinned extras have no "
-        "cp313 wheels: " + failing + ". Switch the runtime to Python 3.11 "
-        "(Colab: Runtime -> Change runtime type -> Python 3.11 + GPU; "
-        "Kaggle: Settings -> Python version -> 3.11) and re-run this cell.")
+PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync]"
 
 # `-e` so the repo is importable as `src.*` and edits are picked up.
 cmd = [
@@ -212,10 +195,8 @@ print("Python:", sys.version.split()[0])
 # generic message with nothing to go on.
 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, bufsize=1)
-transcript = []
 for line in proc.stdout:
     print(line, end="")
-    transcript.append(line)
 proc.wait()
 
 if proc.returncode != 0:
@@ -227,7 +208,22 @@ if proc.returncode != 0:
         "The install failed. Read the full pip output above this line for the "
         "real cause (a missing wheel, an unresolvable pin, a gated model). "
         "Re-run this cell after fixing it.")
-print("Install complete.")
+print("Core install complete.")
+
+# OCR is installed as a separate best-effort step. `paddlepaddle-gpu==2.6.1`
+# caps Python at 3.12 on PyPI and has no cp313 wheel, so on Python 3.13 only
+# EasyOCR is available. The visual-translation stage reports PaddleOCR as
+# unavailable rather than failing the render, so a failure here must not abort
+# the notebook.
+print()
+print("Installing OCR (best-effort)...")
+ocr_proc = subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-q", "easyocr", "langdetect"],
+    text=True)
+if ocr_proc.returncode != 0:
+    print("OCR install failed; visual text translation will use EasyOCR only.")
+else:
+    print("OCR install complete.")
 """
 
 START_MD = """
@@ -289,8 +285,10 @@ os.environ["HF_TOKEN"] = "hf_..."   # or use the Secrets panel on the left
 Without it those stages report as unavailable and the pipeline falls back:
 diarization runs as a single speaker, Indian languages speak via Edge TTS
 instead of a cloned IndicF5 voice, and Llama/ALMA translation is not offered.
-Lip-sync (Wav2Lip/LivePortrait) and on-screen text translation (PaddleOCR) are
-installed by this notebook and work with no token.
+Lip-sync (Wav2Lip/LivePortrait) and on-screen text translation are installed by
+this notebook and work with no token. On Python 3.13 PaddleOCR has no wheel,
+so the visual-translation stage uses EasyOCR instead — the fallback is
+automatic and needs nothing from you.
 """
 
 STOP_MD = """
@@ -311,8 +309,8 @@ TROUBLESHOOT_MD = """
 | Symptom | Fix |
 |---|---|
 | `The server did not become ready` | Re-run the install cell; a partial install is the usual cause. Check the log output above the error. |
-| `The install failed. ... This stack is only verified on Python 3.10-3.12` | Colab's default kernel is now 3.13 and several extras have no cp313 wheels. Switch the runtime to **Python 3.11** (*Runtime → Change runtime type → Python 3.11 + GPU*) and re-run this cell. |
-| `The install failed. ... Read the full pip output above` | A different resolver error. Scroll up inside this cell to see which package failed to build. |
+| `The install failed. ... Full pip output above this line` | A different resolver error. Scroll up inside this cell to see which package failed to build. |
+| Visual text translation looks wrong on Python 3.13 | PaddleOCR has no cp313 wheel, so the stage uses EasyOCR instead. Both are installed; the fallback is automatic. |
 | Out of GPU memory during a render | Use the `FAST` preset (no lip-sync), or process a shorter clip. |
 | `ffmpeg not found` | Re-run step 1; on Colab and Kaggle the cell installs it. |
 | The URL does not open | The link is only reachable from inside the VM. Re-run step 4 to get a fresh proxy URL, and keep the notebook open. |
@@ -324,14 +322,14 @@ TROUBLESHOOT_MD = """
 # Platform-specific cells
 # ---------------------------------------------------------------------------
 COLAB_HINT = """
-In Colab: **Runtime → Change runtime type → Python 3.11 + T4 GPU** (the 3.13
-default is not supported by this stack yet). Then **Runtime → Run all**.
+In Colab: **Runtime → Change runtime type → T4 GPU** (any Python version
+works; 3.13 is fine, only PaddleOCR falls back to EasyOCR). Then
+**Runtime → Run all**.
 """
 
 KAGGLE_HINT = """
-In Kaggle: **Settings → Accelerator → GPU T4 x2** (or P100), turn **Internet**
-on, and set the kernel to **Python 3.11** (Kaggle defaults to 3.13, which this
-stack does not support yet — see the note at the top). Then **Run → Run all**.
+In Kaggle: **Settings → Accelerator → GPU T4 x2** (or P100), and turn
+**Internet** on. Then **Run → Run all**.
 """
 
 COLAB_SETUP_MD = """
@@ -339,10 +337,6 @@ COLAB_SETUP_MD = """
 
 Colab gives a GPU VM with a writable `/content`. We clone the repository there
 and install FFmpeg, which the pipeline shells out to for every render.
-
-**Runtime:** this stack needs **Python 3.11**, not Colab's 3.13 default —
-several extras have no cp313 wheels. Set *Runtime → Change runtime type →
-Python 3.11 + T4 GPU* before running this cell.
 """
 
 COLAB_SETUP_CODE = """
