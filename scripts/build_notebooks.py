@@ -181,15 +181,19 @@ PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,li
 
 # `-e` so the repo is importable as `src.*` and edits are picked up.
 cmd = [
-    sys.executable, "-m", "pip", "install", "-q",
+    sys.executable, "-m", "pip", "install",
     "-e", f"{REPO_DIR}{PIP_EXTRAS}",
 ]
 print("Installing:", " ".join(cmd))
+# No `-q`: the install is the longest cell and the only place a real resolver
+# error shows up. Swallowing stderr here turns every failure into "a transient
+# download failure usually succeeds on a retry", which hides the actual cause.
 result = subprocess.run(cmd, text=True)
 if result.returncode != 0:
     raise SystemExit(
-        "The install failed. Re-run this cell after reading the error above; "
-        "a transient download failure usually succeeds on a retry.")
+        "The install failed. Read the error above this line for the real "
+        "cause (a missing cp313 wheel, an unresolvable pin, a gated model). "
+        "Re-run this cell after fixing it.")
 print("Install complete.")
 """
 
@@ -274,6 +278,7 @@ TROUBLESHOOT_MD = """
 | Symptom | Fix |
 |---|---|
 | `The server did not become ready` | Re-run the install cell; a partial install is the usual cause. Check the log output above the error. |
+| `The install failed. ... transient download failure` | The generic message hides the real error. Re-run the cell and read the full pip output above the `SystemExit` — the cause is usually a missing wheel for this Python version or an unresolvable pin. |
 | Out of GPU memory during a render | Use the `FAST` preset (no lip-sync), or process a shorter clip. |
 | `ffmpeg not found` | Re-run step 1; on Colab and Kaggle the cell installs it. |
 | The URL does not open | The link is only reachable from inside the VM. Re-run step 4 to get a fresh proxy URL, and keep the notebook open. |

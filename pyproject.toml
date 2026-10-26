@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "AI Video Translator — cinema-quality video translation on your own hardware"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 authors = [
     {name = "Ashok Gajjala", email = "gajjalaashok75@gmail.com"},
 ]
@@ -21,9 +21,10 @@ dependencies = [
     "gradio>=4.36.1",
 
     # Data / Numerics
+    # numpy<2 is required by the older torchaudio/demucs stack; pandas is not
+    # imported anywhere in src/ and its <2 pin cannot build on Python 3.13.
     "numpy<2.0.0",
     "scipy",
-    "pandas<2.0.0",
     "pyarrow>=20.0.0",
 
     # Audio I/O
@@ -32,9 +33,12 @@ dependencies = [
     "pydub==0.25.1",
 
     # Video I/O
+    # 4.10.0.84 predates cp313 wheels; relax the pin so the install resolves on
+    # every supported interpreter (the headless variant is what the pipeline
+    # actually imports).
     "ffmpeg-python==0.2.0",
-    "opencv-python==4.10.0.84; sys_platform != 'linux'",
-    "opencv-python-headless==4.10.0.84; sys_platform == 'linux'",
+    "opencv-python>=4.10.0.84; sys_platform != 'linux'",
+    "opencv-python-headless>=4.10.0.84; sys_platform == 'linux'",
 
     # Environment & Config
     "python-dotenv==1.0.1",
@@ -103,10 +107,13 @@ tts = [
 # OCR — Visual text detection
 # =============================================================================
 ocr = [
-    # PaddlePaddle: GPU on Linux, CPU on Windows/macOS
-    "paddlepaddle-gpu==2.6.1; sys_platform == 'linux'",
-    "paddlepaddle==2.6.2; sys_platform != 'linux'",
-    "paddleocr==2.8.1",
+    # PaddlePaddle ships cp313 wheels only in newer releases, so the pins below
+    # are lower bounds rather than exact versions: a too-tight pin refuses to
+    # install on Python 3.13 (Colab) while still allowing the verified 2.6.x
+    # line on 3.10-3.12.
+    "paddlepaddle>=2.6.2; sys_platform != 'linux'",
+    "paddlepaddle-gpu>=2.6.1; sys_platform == 'linux'",
+    "paddleocr>=2.8.1",
     "easyocr",
     "langdetect",
 ]

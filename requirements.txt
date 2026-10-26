@@ -29,12 +29,13 @@ deep-translator
 python-dotenv==1.0.1
 numpy<2.0.0
 scipy
-pandas<2.0.0
 pyarrow>=20.0.0
 librosa
 soundfile>=0.12.1
 ffmpeg-python==0.2.0
-opencv-python==4.10.0.84
+# 4.10.0.84 predates cp313 wheels; relax the pin so the install resolves on
+# every supported interpreter.
+opencv-python>=4.10.0.84
 
 # ML / Transformers
 # transformers + sentencepiece also back the local NLLB-200 translation backend
