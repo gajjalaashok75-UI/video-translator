@@ -193,16 +193,12 @@ cython_debug/
 # silently adding to the repository. A render writes dozens of timestamped
 # files per job, so without this every run would bury real changes in
 # `git status` and invite an accidental commit of gigabytes of intermediates.
-# `jobs/` is per-job scratch + durable artifacts, `temp/` is shared scratch and
-# staged uploads, `output/` is the legacy flat deliverable folder. Generated
-# media under them is not source, but the README.md in each documents the
-# deliberately-kept evidence, so those are re-included below.
+# Documentation, runtime output, scratch and samples are not versioned.
+/docs
 /jobs/*
 /temp/*
 /output/*
-!/jobs/README.md
-!/temp/README.md
-!/output/README.md
+/samples
 
 # Build / runtime caches (not wanted)
 __pycache__/
@@ -263,9 +259,8 @@ references/
 *.bin
 *.pt
 # Extracted / decoded media intermediates written next to source or in flat
-# deliverable folders. The Phase 7 evidence below is deliberately tracked —
-# git keeps already-tracked files regardless of these rules, but the negation
-# entries here make the intent explicit for a fresh checkout.
+# deliverable folders (docs/, temp/, output/ and samples/ are fully ignored
+# above, so these suffix rules only catch stray files elsewhere).
 *.wav
 *.mp4
 *.webm
@@ -273,17 +268,6 @@ references/
 *.mov
 *.srt
 *.vtt
-# --- Deliberately tracked evidence (re-included after the broad rules) ------
-# Public-domain sample clip and the Phase 7 validation renders/stems.
-!/samples/hgf_scene.webm
-!/samples/hgf_h264.mp4
-!/output/translated_hgf_scene.webm
-!/output/hgf_scene.srt
-!/temp/hgf_scene_full.wav
-!/temp/vocals.wav
-!/temp/accompaniment.wav
-!/temp/hgf_scene_merged_speech.wav
-!/temp/hgf_scene_final_mix.wav
 # Agent / editor scratch and per-turn state.
 /.agent
 /.context
