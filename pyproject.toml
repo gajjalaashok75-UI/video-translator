@@ -124,17 +124,26 @@ ocr = [
 # =============================================================================
 # LIPSYNC — Lip synchronization dependencies
 # =============================================================================
+# `basicsr` and `gfpgan` are pulled out of the main extra on purpose: both are
+# source builds with no cp313 wheel, so on Python 3.13 they fail the whole
+# install. They only power GFPGAN face restoration, which the pipeline treats
+# as optional (src/api/capabilities.py:271 reports it unavailable when either
+# is missing). The notebook installs `lipsync` first, then `lipsync-gfpgan`
+# as a best-effort step, so a render never fails for lack of face restoration.
 lipsync = [
     "face-alignment==1.4.1",
-    "basicsr==1.4.2",
     "kornia==0.7.3",
-    "gfpgan==1.3.8",
     "insightface>=0.7.3",
     # ONNX Runtime: GPU on Linux, CPU on macOS
     "onnxruntime-gpu; sys_platform == 'linux'",
     "onnxruntime; sys_platform == 'darwin'",
     # Windows: user must choose onnxruntime or onnxruntime-gpu based on their setup
     "onnxruntime-gpu; sys_platform == 'win32'",
+]
+
+lipsync-gfpgan = [
+    "basicsr==1.4.2",
+    "gfpgan==1.3.8",
 ]
 
 # =============================================================================
@@ -227,21 +236,21 @@ dev = [
 # ALL — Everything for a full local install (excludes docker-specific)
 # =============================================================================
 all = [
-    "video-translator[gpu-cu124,tts,ocr,lipsync,diarization,translation-llm,audio-processing]",
+    "video-translator[gpu-cu124,tts,ocr,lipsync,lipsync-gfpgan,diarization,translation-llm,audio-processing]",
 ]
 
 # =============================================================================
 # ALL-CU128 — Full install with CUDA 12.8
 # =============================================================================
 all-cu128 = [
-    "video-translator[gpu-cu128,tts,ocr,lipsync,diarization,translation-llm,audio-processing]",
+    "video-translator[gpu-cu128,tts,ocr,lipsync,lipsync-gfpgan,diarization,translation-llm,audio-processing]",
 ]
 
 # =============================================================================
 # ALL-CPU — Full install without GPU acceleration
 # =============================================================================
 all-cpu = [
-    "video-translator[gpu-cpu,tts,ocr,lipsync,diarization,translation-llm,audio-processing]",
+    "video-translator[gpu-cpu,tts,ocr,lipsync,lipsync-gfpgan,diarization,translation-llm,audio-processing]",
 ]
 
 [tool.setuptools.packages.find]

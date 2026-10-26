@@ -181,18 +181,23 @@ INSTALL_CODE = """
 import subprocess
 import sys
 
-PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync]"
-
-# `-e` so the repo is importable as `src.*` and edits are picked up.
+# Three phases on purpose. The core pipeline must never fail to install
+# because an *optional* enhancement could not be built:
+#   1. core + lipsync — everything needed to render a dub
+#   2. lipsync-gfpgan  — GFPGAN face restoration (basicsr/gfpgan are source
+#                        builds with no cp313 wheel; skipped on failure)
+#   3. ocr             — PaddleOCR needs Python <=3.12, so on 3.13 only EasyOCR
+#                        is installed (the stage falls back automatically)
+CORE_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync]"
 cmd = [
     sys.executable, "-m", "pip", "install",
-    "-e", f"{REPO_DIR}{PIP_EXTRAS}",
+    "-e", f"{REPO_DIR}{CORE_EXTRAS}",
 ]
 print("Installing:", " ".join(cmd))
 print("Python:", sys.version.split()[0])
-# Stream pip to the notebook in real time and keep the full transcript, so a
-# failure shows exactly what was attempted and which package died instead of a
-# generic message with nothing to go on.
+# Stream pip to the notebook in real time, so a failure shows exactly what was
+# attempted and which package died instead of a generic message with nothing
+# to go on.
 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, bufsize=1)
 for line in proc.stdout:
@@ -202,7 +207,7 @@ proc.wait()
 if proc.returncode != 0:
     print()
     print("=" * 60)
-    print("INSTALL FAILED. Full pip output above this line.")
+    print("CORE INSTALL FAILED. Full pip output above this line.")
     print("=" * 60)
     raise SystemExit(
         "The install failed. Read the full pip output above this line for the "
@@ -210,18 +215,26 @@ if proc.returncode != 0:
         "Re-run this cell after fixing it.")
 print("Core install complete.")
 
-# OCR is installed as a separate best-effort step. `paddlepaddle-gpu==2.6.1`
-# caps Python at 3.12 on PyPI and has no cp313 wheel, so on Python 3.13 only
-# EasyOCR is available. The visual-translation stage reports PaddleOCR as
-# unavailable rather than failing the render, so a failure here must not abort
-# the notebook.
+# GFPGAN face restoration is optional: the pipeline reports it unavailable
+# when either package is missing, so a failure here must not abort the run.
+print()
+print("Installing GFPGAN face restoration (best-effort)...")
+gfpgan_proc = subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-q",
+     "-e", f"{REPO_DIR}[lipsync-gfpgan]"], text=True)
+if gfpgan_proc.returncode != 0:
+    print("GFPGAN install skipped; lip-sync will run without face restoration.")
+else:
+    print("GFPGAN face restoration installed.")
+
+# OCR: PaddleOCR needs Python <=3.12, so on 3.13 only EasyOCR is available.
 print()
 print("Installing OCR (best-effort)...")
 ocr_proc = subprocess.run(
     [sys.executable, "-m", "pip", "install", "-q", "easyocr", "langdetect"],
     text=True)
 if ocr_proc.returncode != 0:
-    print("OCR install failed; visual text translation will use EasyOCR only.")
+    print("OCR install failed; visual text translation will be unavailable.")
 else:
     print("OCR install complete.")
 """
