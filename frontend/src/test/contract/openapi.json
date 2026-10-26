@@ -1,0 +1,3580 @@
+{
+ "components": {
+  "schemas": {
+   "ArtifactDescriptor": {
+    "description": "One artifact the API is willing to hand out.\n\n`name` is the only handle a client uses; it resolves through a server-side\nallow-list, so no client string ever becomes a path. `available` is false for\nan artifact this render did not produce, with `reason` explaining why.",
+    "properties": {
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+     },
+     "download_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Download Url"
+     },
+     "filename": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filename"
+     },
+     "label": {
+      "description": "Human-readable name for a UI.",
+      "title": "Label",
+      "type": "string"
+     },
+     "media_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Media Type"
+     },
+     "name": {
+      "examples": [
+       "subtitles"
+      ],
+      "title": "Name",
+      "type": "string"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Why it is unavailable, when it is.",
+      "title": "Reason"
+     },
+     "size_bytes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Bytes"
+     },
+     "type": {
+      "examples": [
+       "video",
+       "subtitle",
+       "transcript",
+       "json"
+      ],
+      "title": "Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "type",
+     "label",
+     "available"
+    ],
+    "title": "ArtifactDescriptor",
+    "type": "object"
+   },
+   "ArtifactListResponse": {
+    "properties": {
+     "artifacts": {
+      "items": {
+       "$ref": "#/components/schemas/ArtifactDescriptor"
+      },
+      "title": "Artifacts",
+      "type": "array"
+     },
+     "available_count": {
+      "description": "Number actually on disk.",
+      "title": "Available Count",
+      "type": "integer"
+     },
+     "count": {
+      "description": "Number of artifacts listed.",
+      "title": "Count",
+      "type": "integer"
+     },
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "job_id",
+     "artifacts",
+     "count",
+     "available_count"
+    ],
+    "title": "ArtifactListResponse",
+    "type": "object"
+   },
+   "BackendInfo": {
+    "properties": {
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "detail": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Detail",
+      "type": "object"
+     },
+     "kind": {
+      "description": "'translation' or 'tts'.",
+      "title": "Kind",
+      "type": "string"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "state": {
+      "$ref": "#/components/schemas/ComponentState"
+     }
+    },
+    "required": [
+     "name",
+     "label",
+     "kind",
+     "available",
+     "state",
+     "reason"
+    ],
+    "title": "BackendInfo",
+    "type": "object"
+   },
+   "CancelResponse": {
+    "properties": {
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "state": {
+      "$ref": "#/components/schemas/JobState"
+     }
+    },
+    "required": [
+     "job_id",
+     "state",
+     "message"
+    ],
+    "title": "CancelResponse",
+    "type": "object"
+   },
+   "CapabilitiesResponse": {
+    "properties": {
+     "cloning_engines": {
+      "description": "TTS backends that clone a reference voice by architecture.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Cloning Engines",
+      "type": "array"
+     },
+     "features": {
+      "additionalProperties": {
+       "type": "boolean"
+      },
+      "description": "Optional pipeline features and whether they can run now.",
+      "title": "Features",
+      "type": "object"
+     },
+     "notes": {
+      "description": "Caveats a client should surface.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+     },
+     "priority_indic": {
+      "description": "Priority Indian targets, in display order.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Priority Indic",
+      "type": "array"
+     },
+     "quality_presets": {
+      "items": {
+       "$ref": "#/components/schemas/PresetInfo"
+      },
+      "title": "Quality Presets",
+      "type": "array"
+     },
+     "routes": {
+      "description": "Route matrix for the language explorer (bounded, see note).",
+      "items": {
+       "$ref": "#/components/schemas/RouteInfo"
+      },
+      "title": "Routes",
+      "type": "array"
+     },
+     "sources": {
+      "description": "Language codes usable as a source.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+     },
+     "targets": {
+      "description": "Language codes usable as a target.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Targets",
+      "type": "array"
+     },
+     "translation_backends": {
+      "items": {
+       "$ref": "#/components/schemas/BackendInfo"
+      },
+      "title": "Translation Backends",
+      "type": "array"
+     },
+     "tts_backends": {
+      "items": {
+       "$ref": "#/components/schemas/BackendInfo"
+      },
+      "title": "Tts Backends",
+      "type": "array"
+     }
+    },
+    "required": [
+     "translation_backends",
+     "tts_backends",
+     "cloning_engines",
+     "quality_presets",
+     "features",
+     "sources",
+     "targets",
+     "priority_indic",
+     "routes"
+    ],
+    "title": "CapabilitiesResponse",
+    "type": "object"
+   },
+   "CleanupLevel": {
+    "description": "How much of a deleted job's directory to remove.\n\nMirrors the pipeline's own levels (`config.CLEANUP_*`) so the API does not\ninvent a second vocabulary.",
+    "enum": [
+     "KEEP_ALL",
+     "KEEP_RESUMABLE",
+     "FINAL_ONLY",
+     "EVERYTHING"
+    ],
+    "title": "CleanupLevel",
+    "type": "string"
+   },
+   "ComponentState": {
+    "description": "Availability of one optional runtime component.\n\nDeliberately richer than a boolean. \"It doesn't work\" is useless to a user\nwho could fix it by installing a package, accepting a model licence, or\ndownloading weights \u2014 and each of those is a different remedy, so each gets\nits own state.",
+    "enum": [
+     "available",
+     "not_installed",
+     "model_not_downloaded",
+     "token_required",
+     "unsupported_platform",
+     "unavailable",
+     "unknown"
+    ],
+    "title": "ComponentState",
+    "type": "string"
+   },
+   "ComponentStatus": {
+    "description": "One component's availability plus a human-readable reason.",
+    "properties": {
+     "available": {
+      "description": "True only when the component can be used right now.",
+      "title": "Available",
+      "type": "boolean"
+     },
+     "detail": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "description": "Extra context (versions, expected paths). Never secrets.",
+      "title": "Detail",
+      "type": "object"
+     },
+     "label": {
+      "description": "Human-readable label for the UI.",
+      "title": "Label",
+      "type": "string"
+     },
+     "name": {
+      "description": "Stable machine name, e.g. 'wav2lip'.",
+      "title": "Name",
+      "type": "string"
+     },
+     "reason": {
+      "description": "Why the component is in this state.",
+      "title": "Reason",
+      "type": "string"
+     },
+     "required_for": {
+      "description": "Features that need this component, e.g. 'lip_sync'.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Required For",
+      "type": "array"
+     },
+     "state": {
+      "$ref": "#/components/schemas/ComponentState"
+     }
+    },
+    "required": [
+     "name",
+     "label",
+     "state",
+     "available",
+     "reason"
+    ],
+    "title": "ComponentStatus",
+    "type": "object"
+   },
+   "DeleteResponse": {
+    "description": "What deleting a job actually did.",
+    "properties": {
+     "deleted": {
+      "title": "Deleted",
+      "type": "boolean"
+     },
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "level": {
+      "$ref": "#/components/schemas/CleanupLevel"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "removed": {
+      "description": "Subdirectories removed. Empty for KEEP_ALL.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Removed",
+      "type": "array"
+     }
+    },
+    "required": [
+     "job_id",
+     "deleted",
+     "level",
+     "message"
+    ],
+    "title": "DeleteResponse",
+    "type": "object"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "HealthResponse": {
+    "properties": {
+     "api_version": {
+      "examples": [
+       "1.0.0"
+      ],
+      "title": "Api Version",
+      "type": "string"
+     },
+     "status": {
+      "examples": [
+       "ok"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "uptime_seconds": {
+      "description": "Seconds since the API process started.",
+      "title": "Uptime Seconds",
+      "type": "number"
+     }
+    },
+    "required": [
+     "status",
+     "api_version",
+     "uptime_seconds"
+    ],
+    "title": "HealthResponse",
+    "type": "object"
+   },
+   "JobCreateRequest": {
+    "description": "A request to render a staged upload.\n\nEvery field is optional except `upload_id`, and each has the same default the\nGradio UI uses, so a client that only wants \"dub this into Hindi\" can send\ntwo fields. Values are validated before a job directory is created: an\nunknown language or an impossible speaker range is a 422, not a job that\nfails a minute later inside a model call.",
+    "properties": {
+     "audio_model_name": {
+      "default": "Torchaudio HDemucs (Recommended)",
+      "title": "Audio Model Name",
+      "type": "string"
+     },
+     "chunk_duration": {
+      "default": 300,
+      "maximum": 3600.0,
+      "minimum": 0.0,
+      "title": "Chunk Duration",
+      "type": "integer"
+     },
+     "context_model_name": {
+      "default": "Tencent HY-MT1.5 (Local, Better Context)",
+      "title": "Context Model Name",
+      "type": "string"
+     },
+     "diarization_model": {
+      "default": "pyannote/SpeechBrain (Default)",
+      "title": "Diarization Model",
+      "type": "string"
+     },
+     "enable_audio_enhancement": {
+      "default": false,
+      "title": "Enable Audio Enhancement",
+      "type": "boolean"
+     },
+     "enable_diarization": {
+      "default": false,
+      "title": "Enable Diarization",
+      "type": "boolean"
+     },
+     "enable_lipsync": {
+      "default": false,
+      "title": "Enable Lipsync",
+      "type": "boolean"
+     },
+     "enable_time_stretch": {
+      "default": false,
+      "title": "Enable Time Stretch",
+      "type": "boolean"
+     },
+     "enable_vad": {
+      "default": false,
+      "title": "Enable Vad",
+      "type": "boolean"
+     },
+     "enable_visual_translation": {
+      "default": false,
+      "title": "Enable Visual Translation",
+      "type": "boolean"
+     },
+     "lipsync_model_name": {
+      "default": "Wav2Lip-GAN (Low Quality - Fast)",
+      "title": "Lipsync Model Name",
+      "type": "string"
+     },
+     "live_portrait_mode": {
+      "default": "ort",
+      "title": "Live Portrait Mode",
+      "type": "string"
+     },
+     "max_speakers": {
+      "default": 10,
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "Max Speakers",
+      "type": "integer"
+     },
+     "min_speakers": {
+      "default": 1,
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "Min Speakers",
+      "type": "integer"
+     },
+     "ocr_model_name": {
+      "default": "PaddleOCR",
+      "title": "Ocr Model Name",
+      "type": "string"
+     },
+     "optimize_translation": {
+      "default": false,
+      "title": "Optimize Translation",
+      "type": "boolean"
+     },
+     "quality_preset": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Named preset; overrides lip-sync settings.",
+      "title": "Quality Preset"
+     },
+     "source_lang": {
+      "default": "auto",
+      "examples": [
+       "auto",
+       "en",
+       "hi"
+      ],
+      "title": "Source Lang",
+      "type": "string"
+     },
+     "subtitle_mode": {
+      "default": "external",
+      "description": "How subtitles are delivered: 'none', 'external' (sidecar files), 'embedded' (sidecar files plus a toggleable track in the video), or 'burned' (rendered into the picture).",
+      "examples": [
+       "external",
+       "embedded",
+       "burned",
+       "none"
+      ],
+      "title": "Subtitle Mode",
+      "type": "string"
+     },
+     "target_lang": {
+      "default": "en",
+      "examples": [
+       "hi",
+       "es",
+       "en"
+      ],
+      "title": "Target Lang",
+      "type": "string"
+     },
+     "transcription_beam_size": {
+      "default": 7,
+      "maximum": 20.0,
+      "minimum": 1.0,
+      "title": "Transcription Beam Size",
+      "type": "integer"
+     },
+     "transcription_model_name": {
+      "default": "Large v3 Turbo (Fast)",
+      "title": "Transcription Model Name",
+      "type": "string"
+     },
+     "translation_model_name": {
+      "default": "Google Translate (Online, Fast)",
+      "title": "Translation Model Name",
+      "type": "string"
+     },
+     "tts_enable_cfg": {
+      "default": false,
+      "title": "Tts Enable Cfg",
+      "type": "boolean"
+     },
+     "tts_model_name": {
+      "default": "edge",
+      "title": "Tts Model Name",
+      "type": "string"
+     },
+     "tts_voice": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tts Voice"
+     },
+     "upload_id": {
+      "description": "Id from POST /api/uploads, claimed by this job exactly once.",
+      "title": "Upload Id",
+      "type": "string"
+     },
+     "vad_min_silence_duration_ms": {
+      "default": 1000,
+      "maximum": 60000.0,
+      "minimum": 0.0,
+      "title": "Vad Min Silence Duration Ms",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "upload_id"
+    ],
+    "title": "JobCreateRequest",
+    "type": "object"
+   },
+   "JobListResponse": {
+    "properties": {
+     "active": {
+      "description": "Jobs running in this process.",
+      "title": "Active",
+      "type": "integer"
+     },
+     "jobs": {
+      "items": {
+       "$ref": "#/components/schemas/JobStatusResponse"
+      },
+      "title": "Jobs",
+      "type": "array"
+     },
+     "pending": {
+      "description": "Jobs queued in this process.",
+      "title": "Pending",
+      "type": "integer"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "jobs",
+     "total",
+     "active",
+     "pending"
+    ],
+    "title": "JobListResponse",
+    "type": "object"
+   },
+   "JobState": {
+    "description": "A job's lifecycle state as the API reports it.\n\n`queued` and `running` are *process-local*: they come from the runner that is\nexecuting the job. `completed`, `failed` and `cancelled` are also durable \u2014\nthe manifest records a terminal status \u2014 so a job that finished before a\nrestart still reports its outcome, while one that was interrupted reports\n`interrupted` instead of pretending to still be running.",
+    "enum": [
+     "queued",
+     "running",
+     "completed",
+     "failed",
+     "cancelled",
+     "interrupted",
+     "unknown"
+    ],
+    "title": "JobState",
+    "type": "string"
+   },
+   "JobStatusResponse": {
+    "description": "A job's current state, durable and live.\n\nDurable fields (stages, segments, status) come from the manifest on disk and\nare correct after a restart. Live fields (`live_progress`, `queue_position`)\ncome from the runner in this process and are absent for a job this process is\nnot running \u2014 which is not an error, just a different source of truth.",
+    "properties": {
+     "artifacts_url": {
+      "default": "",
+      "description": "Relative URL of this job's artifact list.",
+      "title": "Artifacts Url",
+      "type": "string"
+     },
+     "config": {
+      "additionalProperties": true,
+      "title": "Config",
+      "type": "object"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Failure summary; never a traceback.",
+      "title": "Error"
+     },
+     "errors": {
+      "description": "Durable per-stage error records.",
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Errors",
+      "type": "array"
+     },
+     "events_url": {
+      "description": "Relative URL of this job's event stream.",
+      "title": "Events Url",
+      "type": "string"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     },
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "live_description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live Description"
+     },
+     "live_progress": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live Progress"
+     },
+     "logs_url": {
+      "default": "",
+      "description": "Relative URL of this job's durable log.",
+      "title": "Logs Url",
+      "type": "string"
+     },
+     "output": {
+      "$ref": "#/components/schemas/OutputInfo"
+     },
+     "output_available": {
+      "default": false,
+      "title": "Output Available",
+      "type": "boolean"
+     },
+     "progress_fraction": {
+      "default": 0.0,
+      "description": "Best available completion estimate, 0..1.",
+      "title": "Progress Fraction",
+      "type": "number"
+     },
+     "quality_preset": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quality Preset"
+     },
+     "queue_position": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Queue Position"
+     },
+     "resume": {
+      "$ref": "#/components/schemas/ResumeInfo",
+      "description": "Whether this job can be resumed, and why."
+     },
+     "run_mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RunMode"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Set while this process is running the job: 'new' or 'resume'. Null when no runner here owns it."
+     },
+     "segments": {
+      "$ref": "#/components/schemas/SegmentCounts"
+     },
+     "source": {
+      "additionalProperties": true,
+      "title": "Source",
+      "type": "object"
+     },
+     "source_language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Language"
+     },
+     "source_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Original filename, for a job list to show.",
+      "title": "Source Name"
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StageStatus"
+      },
+      "title": "Stages",
+      "type": "array"
+     },
+     "started_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Started At"
+     },
+     "state": {
+      "$ref": "#/components/schemas/JobState"
+     },
+     "status": {
+      "description": "Raw manifest status, e.g. RUNNING, COMPLETE.",
+      "title": "Status",
+      "type": "string"
+     },
+     "summary": {
+      "$ref": "#/components/schemas/JobSummary",
+      "description": "Durable description of what this job did."
+     },
+     "target_language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Language"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "required": [
+     "job_id",
+     "state",
+     "status",
+     "resume",
+     "events_url"
+    ],
+    "title": "JobStatusResponse",
+    "type": "object"
+   },
+   "JobSummary": {
+    "description": "What a job did, from durable state.\n\nEvery field is a recorded fact, so refreshing the result URL \u2014 or opening it\non another machine \u2014 produces the same summary. Optional fields are None for\na job that predates them rather than being guessed, and the UI renders an\nabsent value as unknown.",
+    "properties": {
+     "context_backend": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Context Backend"
+     },
+     "diarization": {
+      "default": false,
+      "title": "Diarization",
+      "type": "boolean"
+     },
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     },
+     "lipsync": {
+      "default": false,
+      "title": "Lipsync",
+      "type": "boolean"
+     },
+     "lipsync_model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lipsync Model"
+     },
+     "optimize_translation": {
+      "default": false,
+      "title": "Optimize Translation",
+      "type": "boolean"
+     },
+     "source_language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Language"
+     },
+     "source_language_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Language Name"
+     },
+     "speakers": {
+      "default": 0,
+      "description": "Speakers detected; 0 when diarization is off.",
+      "title": "Speakers",
+      "type": "integer"
+     },
+     "state": {
+      "default": "unknown",
+      "description": "JobState as an enum value.",
+      "title": "State",
+      "type": "string"
+     },
+     "status": {
+      "default": "UNKNOWN",
+      "description": "Raw manifest status.",
+      "title": "Status",
+      "type": "string"
+     },
+     "subtitle_count": {
+      "default": 0,
+      "description": "Cues written; 0 when none were requested.",
+      "title": "Subtitle Count",
+      "type": "integer"
+     },
+     "subtitle_mode": {
+      "default": "external",
+      "title": "Subtitle Mode",
+      "type": "string"
+     },
+     "target_language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Language"
+     },
+     "target_language_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Language Name"
+     },
+     "translation_backend": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Translation Backend"
+     },
+     "tts_backend": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tts Backend"
+     },
+     "tts_voice": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tts Voice"
+     },
+     "voice_mode": {
+      "default": "standard",
+      "description": "'standard' or 'preserve_speaker' (per-speaker cloning).",
+      "title": "Voice Mode",
+      "type": "string"
+     }
+    },
+    "title": "JobSummary",
+    "type": "object"
+   },
+   "LanguageInfo": {
+    "description": "One language, derived from `src/utils/languages.py` \u2014 never duplicated.\n\nThe two cloning fields are deliberately separate. Whether a backend is\n*architecturally* capable of cloning a reference voice is a property of the\nlanguage/engine pairing; whether the weights are actually present on this\nmachine is a property of the installation. Conflating them would let the UI\npromise a cloned voice the machine cannot produce.",
+    "properties": {
+     "aliases": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Aliases",
+      "type": "array"
+     },
+     "chars_per_second": {
+      "description": "Rough natural speaking rate, used for duration sanity bounds.",
+      "title": "Chars Per Second",
+      "type": "number"
+     },
+     "cloning_engine": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Which cloning engine applies, if any.",
+      "title": "Cloning Engine"
+     },
+     "cloning_model_available_on_this_machine": {
+      "description": "That backend's weights are present and usable right now.",
+      "title": "Cloning Model Available On This Machine",
+      "type": "boolean"
+     },
+     "cloning_supported_by_architecture": {
+      "description": "A backend that can clone this language's voice exists.",
+      "title": "Cloning Supported By Architecture",
+      "type": "boolean"
+     },
+     "code": {
+      "examples": [
+       "hi"
+      ],
+      "title": "Code",
+      "type": "string"
+     },
+     "dedicated_engine": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Reference-cloning engine that owns this language, if any.",
+      "examples": [
+       "indicf5"
+      ],
+      "title": "Dedicated Engine"
+     },
+     "edge_supported": {
+      "title": "Edge Supported",
+      "type": "boolean"
+     },
+     "flores": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "examples": [
+       "hin_Deva"
+      ],
+      "title": "Flores"
+     },
+     "indic": {
+      "description": "Belongs to the Indic set the router treats as Indic.",
+      "title": "Indic",
+      "type": "boolean"
+     },
+     "name": {
+      "examples": [
+       "Hindi"
+      ],
+      "title": "Name",
+      "type": "string"
+     },
+     "piper_supported": {
+      "title": "Piper Supported",
+      "type": "boolean"
+     },
+     "priority_indic": {
+      "description": "One of the priority Indian target languages, shown first.",
+      "title": "Priority Indic",
+      "type": "boolean"
+     },
+     "script": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Script from the flores-200 code, e.g. 'Deva'.",
+      "title": "Script"
+     },
+     "source": {
+      "description": "Usable as a transcription source.",
+      "title": "Source",
+      "type": "boolean"
+     },
+     "synth_lang": {
+      "description": "Code handed to the TTS engine; differs from `code` for e.g. Urdu.",
+      "title": "Synth Lang",
+      "type": "string"
+     },
+     "target": {
+      "description": "Usable as a dubbing target.",
+      "title": "Target",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "code",
+     "name",
+     "source",
+     "target",
+     "indic",
+     "priority_indic",
+     "synth_lang",
+     "edge_supported",
+     "piper_supported",
+     "chars_per_second",
+     "cloning_supported_by_architecture",
+     "cloning_model_available_on_this_machine"
+    ],
+    "title": "LanguageInfo",
+    "type": "object"
+   },
+   "LanguagesResponse": {
+    "properties": {
+     "auto_detect_code": {
+      "default": "auto",
+      "examples": [
+       "auto"
+      ],
+      "title": "Auto Detect Code",
+      "type": "string"
+     },
+     "languages": {
+      "items": {
+       "$ref": "#/components/schemas/LanguageInfo"
+      },
+      "title": "Languages",
+      "type": "array"
+     },
+     "sources": {
+      "description": "Languages usable as a source, including source-only entries.",
+      "items": {
+       "$ref": "#/components/schemas/LanguageInfo"
+      },
+      "title": "Sources",
+      "type": "array"
+     },
+     "targets": {
+      "description": "Languages usable as a target, priority Indic first.",
+      "items": {
+       "$ref": "#/components/schemas/LanguageInfo"
+      },
+      "title": "Targets",
+      "type": "array"
+     }
+    },
+    "required": [
+     "languages",
+     "sources",
+     "targets"
+    ],
+    "title": "LanguagesResponse",
+    "type": "object"
+   },
+   "LogsResponse": {
+    "description": "A bounded window of a job's durable log.\n\nPlain text lines, because that is what the file is; a client renders them\ndirectly. They have been filtered of secrets and absolute paths, which\n`redacted` confirms, and `has_more` says whether earlier lines exist.",
+    "properties": {
+     "has_more": {
+      "description": "True when the log has more lines than were returned.",
+      "title": "Has More",
+      "type": "boolean"
+     },
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "lines": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Lines",
+      "type": "array"
+     },
+     "redacted": {
+      "default": true,
+      "title": "Redacted",
+      "type": "boolean"
+     },
+     "returned_lines": {
+      "title": "Returned Lines",
+      "type": "integer"
+     },
+     "total_lines": {
+      "title": "Total Lines",
+      "type": "integer"
+     },
+     "truncated_lines": {
+      "default": false,
+      "description": "True when a line was shortened.",
+      "title": "Truncated Lines",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "job_id",
+     "lines",
+     "returned_lines",
+     "total_lines",
+     "has_more"
+    ],
+    "title": "LogsResponse",
+    "type": "object"
+   },
+   "MediaInfo": {
+    "description": "What the server learned about an uploaded file.\n\nInformational: the authoritative check that a file is usable is the\npipeline's own validation, which the upload endpoint runs. Fields are absent\nwhen ffprobe is unavailable rather than reported as zero.",
+    "properties": {
+     "audio_codec": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Audio Codec"
+     },
+     "container": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Container"
+     },
+     "duration": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Duration in seconds.",
+      "title": "Duration"
+     },
+     "has_audio": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Has Audio"
+     },
+     "has_video": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Has Video"
+     },
+     "height": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Height"
+     },
+     "video_codec": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Video Codec"
+     },
+     "width": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width"
+     }
+    },
+    "title": "MediaInfo",
+    "type": "object"
+   },
+   "OptionItem": {
+    "properties": {
+     "available": {
+      "default": true,
+      "title": "Available",
+      "type": "boolean"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "label": {
+      "description": "Text to display.",
+      "title": "Label",
+      "type": "string"
+     },
+     "state": {
+      "$ref": "#/components/schemas/ComponentState",
+      "default": "available"
+     },
+     "value": {
+      "description": "Value to send back to the API.",
+      "title": "Value",
+      "type": "string"
+     }
+    },
+    "required": [
+     "value",
+     "label"
+    ],
+    "title": "OptionItem",
+    "type": "object"
+   },
+   "OptionsResponse": {
+    "description": "Dropdown option lists.\n\n`source` records where each list came from, because during migration the\nGradio literals in `app.py` are still the UI of record and these lists are\nreproduced here rather than shared.",
+    "properties": {
+     "audio_separators": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Audio Separators",
+      "type": "array"
+     },
+     "context_models": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Context Models",
+      "type": "array"
+     },
+     "diarization_backends": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Diarization Backends",
+      "type": "array"
+     },
+     "lipsync_models": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Lipsync Models",
+      "type": "array"
+     },
+     "live_portrait_modes": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Live Portrait Modes",
+      "type": "array"
+     },
+     "ocr_engines": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Ocr Engines",
+      "type": "array"
+     },
+     "source": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "description": "Per-list provenance, e.g. {'tts_models': 'languages.py'}.",
+      "title": "Source",
+      "type": "object"
+     },
+     "subtitle_modes": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Subtitle Modes",
+      "type": "array"
+     },
+     "transcription_models": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Transcription Models",
+      "type": "array"
+     },
+     "translation_models": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Translation Models",
+      "type": "array"
+     },
+     "tts_models": {
+      "items": {
+       "$ref": "#/components/schemas/OptionItem"
+      },
+      "title": "Tts Models",
+      "type": "array"
+     }
+    },
+    "required": [
+     "translation_models",
+     "context_models",
+     "transcription_models",
+     "diarization_backends",
+     "lipsync_models",
+     "ocr_engines",
+     "audio_separators",
+     "live_portrait_modes",
+     "tts_models",
+     "subtitle_modes",
+     "source"
+    ],
+    "title": "OptionsResponse",
+    "type": "object"
+   },
+   "OutputInfo": {
+    "description": "Where a job's finished video is, as URLs.\n\nNever a filesystem path: the client plays and downloads through the API, and\nan absolute path would disclose the server's layout. Both URLs are the same\nfile route, which supports byte ranges: `media_url` is what a `<video>`\nelement loads (media elements ignore `Content-Disposition`), and\n`download_url` is the same bytes offered as a named download. They are\nseparate fields so a client does not have to know that.",
+    "properties": {
+     "available": {
+      "default": false,
+      "title": "Available",
+      "type": "boolean"
+     },
+     "download_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "URL that prompts a download.",
+      "title": "Download Url"
+     },
+     "filename": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filename"
+     },
+     "media_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Content type the file is served with.",
+      "title": "Media Type"
+     },
+     "media_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "URL for inline playback (supports Range).",
+      "title": "Media Url"
+     },
+     "size_bytes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Bytes"
+     }
+    },
+    "title": "OutputInfo",
+    "type": "object"
+   },
+   "OutputResponse": {
+    "description": "Where the finished video is.\n\nDeliberately not a filesystem path: the client is told whether an output\nexists and given the URL to download it, so the API never publishes an\nabsolute server path. `media_url` is what a `<video>` element points at, and\nthe download endpoint supports byte ranges so playback can seek.",
+    "properties": {
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "download_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Download Url"
+     },
+     "filename": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filename"
+     },
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "media_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Content type the file is served with.",
+      "title": "Media Type"
+     },
+     "media_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Media Url"
+     },
+     "size_bytes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Bytes"
+     }
+    },
+    "required": [
+     "job_id",
+     "available"
+    ],
+    "title": "OutputResponse",
+    "type": "object"
+   },
+   "PreflightCheck": {
+    "description": "One readiness check for a prospective render.\n\n`severity` is the whole point: `blocking` disables Start, `warning` does not,\n`ok` is a satisfied check. `field` names the request field at fault so the UI\ncan point at the offending control rather than showing a bare message.",
+    "properties": {
+     "detail": {
+      "default": "",
+      "description": "Why the check has this severity.",
+      "title": "Detail",
+      "type": "string"
+     },
+     "field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The request field this check concerns, if any.",
+      "title": "Field"
+     },
+     "id": {
+      "description": "Stable identifier, e.g. 'tts_language'.",
+      "title": "Id",
+      "type": "string"
+     },
+     "label": {
+      "description": "Short human label, e.g. 'TTS supports target'.",
+      "title": "Label",
+      "type": "string"
+     },
+     "severity": {
+      "default": "ok",
+      "description": "'ok', 'warning' or 'blocking'.",
+      "examples": [
+       "ok",
+       "warning",
+       "blocking"
+      ],
+      "title": "Severity",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "label"
+    ],
+    "title": "PreflightCheck",
+    "type": "object"
+   },
+   "PreflightResponse": {
+    "description": "The result of preflighting a render.\n\n`ready` is true when no check is `blocking`. It is advisory: the backend\nre-validates on `POST /api/jobs`, which is the authority. The panel exists so\na user sees *why* Start is disabled, not to replace the check.",
+    "properties": {
+     "blocking": {
+      "items": {
+       "$ref": "#/components/schemas/PreflightCheck"
+      },
+      "title": "Blocking",
+      "type": "array"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/PreflightCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "ready": {
+      "title": "Ready",
+      "type": "boolean"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/PreflightCheck"
+      },
+      "title": "Warnings",
+      "type": "array"
+     }
+    },
+    "required": [
+     "ready"
+    ],
+    "title": "PreflightResponse",
+    "type": "object"
+   },
+   "PresetInfo": {
+    "properties": {
+     "name": {
+      "examples": [
+       "BALANCED"
+      ],
+      "title": "Name",
+      "type": "string"
+     },
+     "settings": {
+      "additionalProperties": true,
+      "description": "The quality configuration this preset applies.",
+      "title": "Settings",
+      "type": "object"
+     }
+    },
+    "required": [
+     "name",
+     "settings"
+    ],
+    "title": "PresetInfo",
+    "type": "object"
+   },
+   "ResumeInfo": {
+    "description": "Whether a job can be resumed, decided server-side.\n\nA client shows or hides a Resume control from this and does not re-derive the\nrules from `state`: the rules involve whether the source file still exists\nand whether the output is missing, which the client cannot see.",
+    "properties": {
+     "can_resume": {
+      "title": "Can Resume",
+      "type": "boolean"
+     },
+     "message": {
+      "description": "Sentence to show a person.",
+      "title": "Message",
+      "type": "string"
+     },
+     "reason": {
+      "description": "Machine-readable token, e.g. 'interrupted', 'complete'.",
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "can_resume",
+     "reason",
+     "message"
+    ],
+    "title": "ResumeInfo",
+    "type": "object"
+   },
+   "ResumeResponse": {
+    "description": "The outcome of asking a job to resume.",
+    "properties": {
+     "job_id": {
+      "title": "Job Id",
+      "type": "string"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "queue_position": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Queue Position"
+     },
+     "run_mode": {
+      "$ref": "#/components/schemas/RunMode",
+      "default": "resume"
+     },
+     "state": {
+      "$ref": "#/components/schemas/JobState"
+     }
+    },
+    "required": [
+     "job_id",
+     "state",
+     "message"
+    ],
+    "title": "ResumeResponse",
+    "type": "object"
+   },
+   "RouteInfo": {
+    "description": "A translation route the router can serve, for the language explorer.",
+    "properties": {
+     "backend": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Preferred backend, when one is fixed for the pair.",
+      "title": "Backend"
+     },
+     "is_passthrough": {
+      "default": false,
+      "title": "Is Passthrough",
+      "type": "boolean"
+     },
+     "pivots": {
+      "description": "Intermediate languages if a pivot is needed.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Pivots",
+      "type": "array"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "target": {
+      "title": "Target",
+      "type": "string"
+     }
+    },
+    "required": [
+     "source",
+     "target"
+    ],
+    "title": "RouteInfo",
+    "type": "object"
+   },
+   "RunMode": {
+    "description": "Whether a runner is starting a job or continuing one.",
+    "enum": [
+     "new",
+     "resume"
+    ],
+    "title": "RunMode",
+    "type": "string"
+   },
+   "SampleInfo": {
+    "description": "One allow-listed bundled sample.\n\nThe API never lists a directory; a sample exists here only because it is in\n`src/api/samples.py`'s table. `available` is computed from the filesystem so\na checkout that omitted the media reports it honestly instead of advertising\na demo that would fail.",
+    "properties": {
+     "available": {
+      "description": "True when the media is present and can be staged.",
+      "title": "Available",
+      "type": "boolean"
+     },
+     "credit": {
+      "description": "Attribution for the bundled media.",
+      "title": "Credit",
+      "type": "string"
+     },
+     "description": {
+      "title": "Description",
+      "type": "string"
+     },
+     "duration_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Seconds"
+     },
+     "filename": {
+      "description": "Display name; resolved server-side.",
+      "title": "Filename",
+      "type": "string"
+     },
+     "id": {
+      "examples": [
+       "hgf_scene"
+      ],
+      "title": "Id",
+      "type": "string"
+     },
+     "media_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Media Type"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Why the sample is unavailable, when it is.",
+      "title": "Reason"
+     },
+     "size_bytes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Bytes"
+     },
+     "source_language": {
+      "examples": [
+       "en"
+      ],
+      "title": "Source Language",
+      "type": "string"
+     },
+     "target_language": {
+      "examples": [
+       "hi"
+      ],
+      "title": "Target Language",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "title",
+     "description",
+     "filename",
+     "source_language",
+     "target_language",
+     "credit",
+     "available"
+    ],
+    "title": "SampleInfo",
+    "type": "object"
+   },
+   "SampleListResponse": {
+    "description": "The bundled samples the demo page may offer.",
+    "properties": {
+     "samples": {
+      "items": {
+       "$ref": "#/components/schemas/SampleInfo"
+      },
+      "title": "Samples",
+      "type": "array"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "samples",
+     "total"
+    ],
+    "title": "SampleListResponse",
+    "type": "object"
+   },
+   "SegmentCounts": {
+    "description": "Per-segment progress, which is what the UI shows during TTS.",
+    "properties": {
+     "complete": {
+      "default": 0,
+      "title": "Complete",
+      "type": "integer"
+     },
+     "failed": {
+      "default": 0,
+      "title": "Failed",
+      "type": "integer"
+     },
+     "partial": {
+      "default": 0,
+      "title": "Partial",
+      "type": "integer"
+     },
+     "pending": {
+      "default": 0,
+      "title": "Pending",
+      "type": "integer"
+     },
+     "total": {
+      "default": 0,
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "title": "SegmentCounts",
+    "type": "object"
+   },
+   "StageStatus": {
+    "description": "One pipeline stage's durable state, read from the manifest.",
+    "properties": {
+     "attempts": {
+      "default": 0,
+      "title": "Attempts",
+      "type": "integer"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "status": {
+      "examples": [
+       "PENDING",
+       "RUNNING",
+       "COMPLETE",
+       "FAILED"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "status"
+    ],
+    "title": "StageStatus",
+    "type": "object"
+   },
+   "SystemResponse": {
+    "description": "Runtime environment. Every field is best-effort: a missing GPU, a missing\nFFmpeg binary or an unknown CUDA version yields null rather than an error.",
+    "properties": {
+     "api_version": {
+      "title": "Api Version",
+      "type": "string"
+     },
+     "app_version": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Version from pyproject.toml, when readable.",
+      "title": "App Version"
+     },
+     "cuda_available": {
+      "title": "Cuda Available",
+      "type": "boolean"
+     },
+     "cuda_runtime_version": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cuda Runtime Version"
+     },
+     "cuda_version": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Torch's compiled CUDA version, when available.",
+      "title": "Cuda Version"
+     },
+     "device": {
+      "description": "Device the pipeline will use: 'cuda' or 'cpu'.",
+      "title": "Device",
+      "type": "string"
+     },
+     "ffmpeg_available": {
+      "title": "Ffmpeg Available",
+      "type": "boolean"
+     },
+     "ffmpeg_version": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ffmpeg Version"
+     },
+     "ffprobe_available": {
+      "title": "Ffprobe Available",
+      "type": "boolean"
+     },
+     "gpu_count": {
+      "default": 0,
+      "title": "Gpu Count",
+      "type": "integer"
+     },
+     "gpu_memory_total_mb": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gpu Memory Total Mb"
+     },
+     "gpu_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gpu Name"
+     },
+     "jobs_dir_writable": {
+      "description": "Whether the durable jobs directory can be created and written.",
+      "title": "Jobs Dir Writable",
+      "type": "boolean"
+     },
+     "machine": {
+      "examples": [
+       "x86_64"
+      ],
+      "title": "Machine",
+      "type": "string"
+     },
+     "platform": {
+      "examples": [
+       "Linux"
+      ],
+      "title": "Platform",
+      "type": "string"
+     },
+     "platform_release": {
+      "title": "Platform Release",
+      "type": "string"
+     },
+     "processor": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Processor"
+     },
+     "python_implementation": {
+      "examples": [
+       "CPython"
+      ],
+      "title": "Python Implementation",
+      "type": "string"
+     },
+     "python_version": {
+      "examples": [
+       "3.12.14"
+      ],
+      "title": "Python Version",
+      "type": "string"
+     },
+     "torch_version": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Torch Version"
+     }
+    },
+    "required": [
+     "api_version",
+     "python_version",
+     "python_implementation",
+     "platform",
+     "platform_release",
+     "machine",
+     "device",
+     "cuda_available",
+     "ffmpeg_available",
+     "ffprobe_available",
+     "jobs_dir_writable"
+    ],
+    "title": "SystemResponse",
+    "type": "object"
+   },
+   "UploadResponse": {
+    "description": "A staged upload.\n\n`upload_id` is the only handle the client needs; it is opaque and carries no\nclient-supplied text, so it is safe to pass back. The original filename is\nreturned for display only and has been sanitised.",
+    "properties": {
+     "bytes": {
+      "description": "Size on disk in bytes.",
+      "title": "Bytes",
+      "type": "integer"
+     },
+     "claimed_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Job id that claimed this upload, if any.",
+      "title": "Claimed By"
+     },
+     "created_at": {
+      "title": "Created At",
+      "type": "number"
+     },
+     "filename": {
+      "description": "Sanitised display name of the upload.",
+      "title": "Filename",
+      "type": "string"
+     },
+     "media": {
+      "$ref": "#/components/schemas/MediaInfo"
+     },
+     "status": {
+      "examples": [
+       "staged"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "upload_id": {
+      "examples": [
+       "up-1f2c3d4e5f60718293a4b5c6d7e8f901"
+      ],
+      "title": "Upload Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "upload_id",
+     "filename",
+     "bytes",
+     "status",
+     "created_at"
+    ],
+    "title": "UploadResponse",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   },
+   "VoicesResponse": {
+    "properties": {
+     "cloning": {
+      "description": "True when this backend clones a reference voice instead of selecting a named one.",
+      "title": "Cloning",
+      "type": "boolean"
+     },
+     "language": {
+      "title": "Language",
+      "type": "string"
+     },
+     "language_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Language Name"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     },
+     "tts_model": {
+      "title": "Tts Model",
+      "type": "string"
+     },
+     "voices": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Voices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "tts_model",
+     "language",
+     "voices",
+     "cloning"
+    ],
+    "title": "VoicesResponse",
+    "type": "object"
+   }
+  }
+ },
+ "info": {
+  "description": "Discovery, upload and job execution API for the Video Translator pipeline. The dubbing pipeline itself is unchanged: a job runs it through the same generator the Gradio UI consumes, on a worker thread, with its progress published as server-sent events.",
+  "title": "Video Translator API",
+  "version": "1.0.0"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/api/capabilities": {
+   "get": {
+    "description": "What this installation can actually do.\n\nTranslation and TTS backends with their availability, cloning engines,\nquality presets, supported languages and optional features. The route matrix\nis opt-in via `include_routes` because building it imports the translation\npackage; pass `include_routes=true` for the language explorer. No inference\nis run either way.",
+    "operationId": "capabilities_api_capabilities_get",
+    "parameters": [
+     {
+      "description": "Also compute the source/target route matrix. This imports the translation package (and therefore transformers), so it costs a few seconds on the first call and is cached afterwards.",
+      "in": "query",
+      "name": "include_routes",
+      "required": false,
+      "schema": {
+       "default": false,
+       "description": "Also compute the source/target route matrix. This imports the translation package (and therefore transformers), so it costs a few seconds on the first call and is cached afterwards.",
+       "title": "Include Routes",
+       "type": "boolean"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CapabilitiesResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Application capabilities",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/health": {
+   "get": {
+    "description": "Cheap liveness check.\n\nReads no models, touches no pipeline state and does not even look at the\nfilesystem, so it is safe as a container health check.",
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HealthResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Liveness probe",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/jobs": {
+   "get": {
+    "description": "Recent jobs, read from the jobs directory.\n\nEvery job on disk is included, not only those this process is running: a job\nfrom a previous process is still a job, and its state comes from its\nmanifest. `active` and `pending` count only this process's queue.\n\n`state` filters on the computed state, which is the one a client sees \u2014 so\nfiltering by `interrupted` finds exactly the jobs whose Resume button would\nwork, which is what a recovery screen needs. Filtering after the manifest read\n(rather than by directory name) means a filter can scan more than `limit`\njobs; the directory listing is bounded separately to keep that from being\nunbounded work.",
+    "operationId": "list_jobs_api_jobs_get",
+    "parameters": [
+     {
+      "description": "Maximum number of jobs to return.",
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "default": 50,
+       "description": "Maximum number of jobs to return.",
+       "maximum": 500,
+       "minimum": 1,
+       "title": "Limit",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Only jobs in this state. Applied after the state is computed, so 'interrupted' works.",
+      "in": "query",
+      "name": "state",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/JobState"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Only jobs in this state. Applied after the state is computed, so 'interrupted' works.",
+       "title": "State"
+      }
+     },
+     {
+      "description": "Order by creation time.",
+      "in": "query",
+      "name": "sort",
+      "required": false,
+      "schema": {
+       "default": "newest",
+       "description": "Order by creation time.",
+       "pattern": "^(newest|oldest)$",
+       "title": "Sort",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobListResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "List jobs",
+    "tags": [
+     "jobs"
+    ]
+   },
+   "post": {
+    "description": "Create a job from a staged upload and start it.\n\nReturns 202 with the job's initial state; execution happens on a worker\nthread and its progress is on `events_url`. The upload is claimed exactly\nonce, so a second request with the same `upload_id` is a 409 rather than a\nsecond render of the same file.\n\nThe setup work \u2014 creating the job directory, moving the source in, writing\nthe manifest \u2014 is blocking file I/O, so it runs in a worker thread rather\nthan on the event loop. A multi-gigabyte `os.replace` on a busy filesystem\nwould otherwise stall every other request, including `/api/health`.",
+    "operationId": "create_job_api_jobs_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JobCreateRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "202": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobStatusResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Start a render",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/preflight": {
+   "post": {
+    "description": "Report whether a prospective render is ready, and why not if it is not.\n\nAdvisory only: the checks are computed from the same registries\n`POST /api/jobs` validates against, but creating a job re-runs every check\nfrom scratch. This exists so the UI can explain a disabled Start button\ninstead of leaving a user to guess, and so a problem is caught before a job\ndirectory is created.\n\nRead-only and cheap for everything but the component probes, which it shares\nwith `/api/models`.",
+    "operationId": "preflight_job_api_jobs_preflight_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JobCreateRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PreflightResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Check a render before starting it",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}": {
+   "delete": {
+    "description": "Delete a finished job, or clean its intermediates.\n\nAn active job is refused with 409 rather than cancelled implicitly: cancelling\na render takes effect at the pipeline's next checkpoint and may take minutes,\nso silently combining \"cancel\" with \"delete\" would make a DELETE either block\nor lie about having completed. A client that wants a running job gone cancels\nit first, then deletes it once it is terminal \u2014 which is a decision the client\ncan make and the server cannot make for it.\n\n`level` maps to the pipeline's own `Job.clean` semantics:\n\n  * `EVERYTHING` \u2014 remove the whole job directory. The job is gone.\n  * `KEEP_RESUMABLE` \u2014 remove the bulky intermediates that can be regenerated\n    (audio, separation, subtitles, lipsync, cache), keep everything a resume\n    needs. The job is still resumable and still listed.\n  * `FINAL_ONLY` \u2014 keep only the final output. The job is no longer resumable.\n  * `KEEP_ALL` \u2014 remove nothing; a no-op that reports what would be kept.\n\nEvery removal is containment-checked (`Job.clean` calls `assert_within` per\ntarget), so a job id or a tampered subdirectory cannot cause a delete outside\nthe job root.",
+    "operationId": "delete_job_api_jobs__job_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     },
+     {
+      "description": "How much to remove. KEEP_ALL is a no-op, KEEP_RESUMABLE and FINAL_ONLY mirror the pipeline's own levels.",
+      "in": "query",
+      "name": "level",
+      "required": false,
+      "schema": {
+       "$ref": "#/components/schemas/CleanupLevel",
+       "default": "EVERYTHING",
+       "description": "How much to remove. KEEP_ALL is a no-op, KEEP_RESUMABLE and FINAL_ONLY mirror the pipeline's own levels."
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete a job",
+    "tags": [
+     "jobs"
+    ]
+   },
+   "get": {
+    "description": "One job's state.\n\nDurable fields come from the manifest and are correct after a restart; live\nfields are present only when this process is running the job. A job whose\nmanifest says `RUNNING` with no runner in this process is reported\n`interrupted`, because the process that was writing it is gone \u2014 and that is\nthe state `resume.can_resume` is true for.",
+    "operationId": "get_job_api_jobs__job_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobStatusResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Job status",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/artifacts": {
+   "get": {
+    "description": "The allow-listed artifacts for a job, present or not.\n\nDeliberately not a directory listing: the job directory contains separation\nstems, per-segment TTS audio, model cache and speaker reference recordings,\nnone of which is an API surface. Only the entries in `src.api.artifacts.SPECS`\nare ever described, and an entry that this render did not produce is returned\nwith `available: false` so a UI can show it disabled rather than guess.",
+    "operationId": "list_artifacts_api_jobs__job_id__artifacts_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ArtifactListResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "List a job's artifacts",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/artifacts/{artifact_name}": {
+   "get": {
+    "description": "Serve one allow-listed artifact by name.\n\n`artifact_name` is looked up in the allow-list; it is never joined to a path.\nAn unknown name is a 404 and a withheld name (a cache directory, speaker\nrecordings) is a 404 with a reason, so the two are distinguishable. The\nresolved file is confirmed to be inside the job root before it is served.",
+    "operationId": "download_artifact_api_jobs__job_id__artifacts__artifact_name__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "artifact_name",
+      "required": true,
+      "schema": {
+       "title": "Artifact Name",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Download one artifact",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/cancel": {
+   "post": {
+    "description": "Ask a job to stop.\n\nA queued job is cancelled outright and never runs. A running job is flagged\nand stops at the pipeline's next checkpoint \u2014 between stages, not inside a\nmodel call \u2014 so cancellation is not instant and the response says\n`cancelling` to make that visible. Cancelling a job that has already\nfinished is a no-op that reports its final state, not an error.",
+    "operationId": "cancel_job_api_jobs__job_id__cancel_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CancelResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cancel a job",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/events": {
+   "get": {
+    "description": "Follow a job as Server-Sent Events.\n\nThe first frame is a `snapshot` of the durable state, so a client that\nconnects (or reconnects) immediately has something to render without a second\nrequest. Then recent events are replayed from the buffer, and then live ones\nare streamed until the job reaches a terminal state.\n\n`Last-Event-ID` is honoured: a browser's `EventSource` reconnects\nautomatically and sends the id of the last frame it saw, so a dropped\nconnection resumes where it left off. If that position has already rotated\nout of the bounded buffer, a `resync` event is sent first and the client is\nexpected to re-read the job \u2014 being told there is a gap is better than\nsilently missing events.\n\nA job from a previous process has no buffer and no runner. The snapshot is\nstill sent (its state is on disk), followed by a `resync` explaining that\nlive events are unavailable, and the stream closes. Nothing here ever blocks\nthe event loop: the worker publishes through `call_soon_threadsafe`.",
+    "operationId": "job_events_api_jobs__job_id__events_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Server-sent event stream",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/logs": {
+   "get": {
+    "description": "The job's own log file, bounded and filtered.\n\nThis is the durable `jobs/<id>/logs/job.log`, not the in-memory event buffer:\nit survives a restart, which is exactly when a client wants to read it. The\ndefault is a tail rather than the whole file, and the response says whether\nmore lines exist.\n\nLines are filtered of secrets and absolute filesystem paths before they are\nreturned (see `src.api.redact`). The file on disk keeps its full detail; only\nthe response is filtered, so debugging on the server is not degraded.",
+    "operationId": "get_logs_api_jobs__job_id__logs_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Return the last N lines.",
+      "in": "query",
+      "name": "tail",
+      "required": false,
+      "schema": {
+       "default": 200,
+       "description": "Return the last N lines.",
+       "maximum": 5000,
+       "minimum": 1,
+       "title": "Tail",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Start at this line (0-based). Use with `limit` to page.",
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Start at this line (0-based). Use with `limit` to page.",
+       "title": "Offset"
+      }
+     },
+     {
+      "description": "Maximum lines to return when using `offset`.",
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "maximum": 5000,
+         "minimum": 1,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Maximum lines to return when using `offset`.",
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LogsResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "A job's durable log",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/output": {
+   "get": {
+    "description": "Where a finished video is, as a URL rather than a path.\n\nThe absolute path on the server is deliberately not published: it is not\nuseful to a client and it is a filesystem disclosure. The file itself is\nserved by `download_output`, which supports byte ranges so a browser can seek\nwithout downloading the whole file.",
+    "operationId": "get_output_api_jobs__job_id__output_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutputResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Finished video metadata",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/output/download": {
+   "get": {
+    "description": "Stream the finished video, supporting HTTP byte ranges.\n\n`FileResponse` handles `Range` itself, which is what makes seeking work in a\nbrowser's video element, and it streams from disk rather than reading the file\ninto memory. The media type is taken from the file's extension: the real\noutput of a render is a `.webm`, and labelling it `video/mp4` \u2014 as an earlier\nversion did \u2014 is why a browser would refuse to play it.\n\nThe path is re-derived from the manifest and re-checked for containment on\nevery request (see `jobstate.output_path`), so a manifest that names a file\noutside the job cannot be used to read it.",
+    "operationId": "download_output_api_jobs__job_id__output_download_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Download the finished video",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/jobs/{job_id}/resume": {
+   "post": {
+    "description": "Continue a job that was interrupted, failed or cancelled.\n\nThis does not rebuild the job's configuration. `resume_job` on the pipeline\nreplays the configuration recorded in the manifest and lets each stage's\nfingerprint decide whether its work is still valid, so completed stages are\nreused rather than redone. The API's job is to check that a resume is *safe*\n(see `recovery.evaluate`), not to decide what the pipeline should redo.\n\nThe resume goes through the same queue as a new job, so it obeys\n`max_concurrent` and cannot run alongside a render that is already using the\nGPU. Eligibility and duplicate-protection are both checked here and again,\nrace-safely, inside the manager: two simultaneous requests cannot both start a\nrunner for one job.",
+    "operationId": "resume_job_route_api_jobs__job_id__resume_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "job_id",
+      "required": true,
+      "schema": {
+       "title": "Job Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResumeResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resume an interrupted job",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/api/languages": {
+   "get": {
+    "description": "Every language the pipeline can consume or produce.\n\nDerived from `src/utils/languages.py`, never duplicated. Includes both\n`cloning_supported_by_architecture` (does a cloning engine exist for this\nlanguage?) and `cloning_model_available_on_this_machine` (are its weights\nusable here?), because the UI needs both to avoid promising a voice this\nmachine cannot produce.",
+    "operationId": "languages_api_languages_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LanguagesResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Language registry",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/models": {
+   "get": {
+    "description": "Availability of every optional runtime component.\n\nStates are explicit (`available`, `not_installed`, `model_not_downloaded`,\n`token_required`, `unsupported_platform`, `unavailable`, `unknown`) so a\nclient can offer the right remedy instead of a generic failure.\n\nThis endpoint never downloads weights and never initialises a model: it\nchecks the filesystem, import availability and configuration only. IndicF5\nin particular is reported without any inference, and its runtime availability\nis kept separate from its weight/access availability.",
+    "operationId": "models_api_models_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ComponentStatus"
+         },
+         "title": "Response Models Api Models Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Optional component availability",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/options": {
+   "get": {
+    "description": "The dropdown option lists the interface offers.\n\nDuring F1 these are reproduced here rather than shared with `app.py`, which\nis deliberately left unmodified; the `source` field records that provenance\nso the temporary duplication is visible to clients.",
+    "operationId": "option_lists_api_options_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OptionsResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "UI option lists",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/samples": {
+   "get": {
+    "description": "The bundled samples this installation can offer.\n\nNever a directory listing: the response is built from the curated table, so\nonly files someone added on purpose are reachable. A sample whose media is\nmissing is still listed, with `available: false` and a reason, because \"this\nexists but is not on this machine\" is more useful to the demo page than a\nsilently short list.",
+    "operationId": "list_samples_api_samples_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SampleListResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "List demo samples",
+    "tags": [
+     "samples"
+    ]
+   }
+  },
+  "/api/samples/{sample_id}/claim": {
+   "post": {
+    "description": "Stage an allow-listed sample as an ordinary upload.\n\nThe sample is *copied* into the upload staging area and returned with the\nsame shape as `POST /api/uploads`, so the client starts a demo with the\nnormal `POST /api/jobs` call and gets a normal durable job. The bundled\noriginal is never moved or modified.\n\nCopying and probing are blocking file/ffprobe work, so they run in a worker\nthread rather than on the event loop.",
+    "operationId": "claim_sample_api_samples__sample_id__claim_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "sample_id",
+      "required": true,
+      "schema": {
+       "title": "Sample Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UploadResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Stage a sample as an upload",
+    "tags": [
+     "samples"
+    ]
+   }
+  },
+  "/api/samples/{sample_id}/media": {
+   "get": {
+    "description": "Serve a sample's video so a browser can preview it before starting a demo.\n\n`FileResponse` supports byte ranges, so the preview seeks without downloading\nthe whole clip. The media type comes from the file's extension, and the path\nis re-derived from the allow-list and re-checked for containment on every\nrequest, so no request can name a file outside the samples directory.",
+    "operationId": "sample_media_api_samples__sample_id__media_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "sample_id",
+      "required": true,
+      "schema": {
+       "title": "Sample Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Stream a sample's media",
+    "tags": [
+     "samples"
+    ]
+   }
+  },
+  "/api/system": {
+   "get": {
+    "description": "Runtime facts for the dashboard.\n\nEvery field is best-effort and nullable: a missing GPU, a missing FFmpeg\nbinary or an unreadable version must degrade to null, never to an error.",
+    "operationId": "system_api_system_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SystemResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Runtime environment",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/uploads": {
+   "post": {
+    "description": "Stage a source video for a later render.\n\nStreams the request body to disk, rejecting anything over\n`settings.MAX_UPLOAD_BYTES` part-way through rather than after the fact, and\nthen probes the result with the pipeline's own validation. The returned\n`upload_id` is the only handle needed to start a job; it is single-use.\n\nA rejected upload leaves nothing behind: the staging directory is removed\nbefore the error is raised.",
+    "operationId": "create_upload_api_uploads_post",
+    "parameters": [
+     {
+      "description": "Original filename, used for the extension and display. Sanitised before use; never used as a path.",
+      "in": "query",
+      "name": "filename",
+      "required": true,
+      "schema": {
+       "description": "Original filename, used for the extension and display. Sanitised before use; never used as a path.",
+       "title": "Filename",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UploadResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Upload a source video",
+    "tags": [
+     "uploads"
+    ]
+   }
+  },
+  "/api/uploads/{upload_id}": {
+   "delete": {
+    "description": "Remove a staged upload that will not be used.\n\nRefuses to delete one a job has claimed: the file now belongs to the job's\ndurable workspace, and removing it would break that job's ability to resume.",
+    "operationId": "delete_upload_api_uploads__upload_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "upload_id",
+      "required": true,
+      "schema": {
+       "title": "Upload Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Delete Upload Api Uploads  Upload Id  Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Discard a staged upload",
+    "tags": [
+     "uploads"
+    ]
+   },
+   "get": {
+    "description": "A staged upload's metadata.\n\nExists so a client can confirm a staging step succeeded, and see what the\nserver made of the file, without keeping the POST response.",
+    "operationId": "get_upload_api_uploads__upload_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "upload_id",
+      "required": true,
+      "schema": {
+       "title": "Upload Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UploadResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Upload status",
+    "tags": [
+     "uploads"
+    ]
+   }
+  },
+  "/api/voices": {
+   "get": {
+    "description": "Voices a backend can offer for a language.\n\nReuses `TTSEngine.get_available_voices` rather than maintaining a second\nvoice registry. An unknown backend or language is a 4xx with an explanatory\nmessage, not an internal error.",
+    "operationId": "voices_api_voices_get",
+    "parameters": [
+     {
+      "description": "TTS backend key, e.g. 'edge' or 'indicf5'.",
+      "in": "query",
+      "name": "tts_model",
+      "required": true,
+      "schema": {
+       "description": "TTS backend key, e.g. 'edge' or 'indicf5'.",
+       "title": "Tts Model",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Language code or display name, e.g. 'hi'.",
+      "in": "query",
+      "name": "language",
+      "required": true,
+      "schema": {
+       "description": "Language code or display name, e.g. 'hi'.",
+       "title": "Language",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VoicesResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "TTS voices",
+    "tags": [
+     "system"
+    ]
+   }
+  }
+ }
+}

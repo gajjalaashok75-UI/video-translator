@@ -1,0 +1,293 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Cursor  
+#  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 
+#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
+#  refer to https://docs.cursor.com/context/ignore-files
+.cursorignore
+.cursorindexingignore
+
+# --- Generated media, samples and job artifacts (DELIBERATELY TRACKED) -----
+# By request, the sample clips, dubbed renders, extracted/re-separated audio,
+# TTS takes, subtitles and the job directories ARE part of this repo and its
+# archive: they are the evidence behind the Phase 7 validation and what a
+# reviewer inspects. So media, /jobs, /temp and /output are intentionally NOT
+# ignored below. Only true build/runtime caches stay out of the repo.
+
+# --- New runtime output under those trees is NOT tracked -------------------
+# The evidence above stays committed: git keeps files that are already tracked
+# no matter what these rules say. What the rules do is stop a *fresh* run from
+# silently adding to the repository. A render writes dozens of timestamped
+# files per job, so without this every run would bury real changes in
+# `git status` and invite an accidental commit of gigabytes of intermediates.
+# `jobs/` is per-job scratch + durable artifacts, `temp/` is shared scratch and
+# staged uploads, `output/` is the legacy flat deliverable folder. Generated
+# media under them is not source, but the README.md in each documents the
+# deliberately-kept evidence, so those are re-included below.
+/jobs/*
+/temp/*
+/output/*
+!/jobs/README.md
+!/temp/README.md
+!/output/README.md
+
+# Build / runtime caches (not wanted)
+__pycache__/
+*.py[cod]
+node_modules/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.agent/skills/project_guardian/SKILL.md
+
+# Virtualenvs and model weights are not shipped: large and reproducible.
+.venv
+venv/
+env/
+/models
+/MuseTalk
+/gfpgan
+/debug_download
+
+# Editor / agent scratch
+/.context
+/.vscode
+/.agent
+
+# Test fixtures with no reproducible source
+/tests/data
+/tests/assets
+self_attention_megatron_basic_test.onnx
+test_types_BFLOAT16.onnx
+test_types_FLOAT16.onnx
+/onnxruntime_src
+bart_mlp_megatron_basic_test.onnx
+bart_self_attention_megatron_basic_test.onnx
+mlp_megatron_basic_test.onnx
+/cudnn_temp
+CWINDOWSsystem32cmd.exe.txt
+venv.7z
+custom_python_embed.zip
+create_portable_dist.ps1
+create_portable_dist_v2.ps1
+repair_portable_dist.ps1
+test_deps.py
+reproduce_app_logic.py
+
+# Local reference repos for exploration (not part of this project)
+references/
+
+# --- Build / runtime artifacts produced by the app, not source -------------
+# DLLs the launcher copies next to the source tree at runtime.
+/src/lib
+/src/lib64
+# Per-process runtime logs (debug_crash.log and friends).
+*.log
+# Downloaded model weights that are large and reproducible from the registries.
+*.onnx
+*.pth
+*.safetensors
+*.bin
+*.pt
+# Extracted / decoded media intermediates written next to source or in flat
+# deliverable folders. The Phase 7 evidence below is deliberately tracked —
+# git keeps already-tracked files regardless of these rules, but the negation
+# entries here make the intent explicit for a fresh checkout.
+*.wav
+*.mp4
+*.webm
+*.mkv
+*.mov
+*.srt
+*.vtt
+# --- Deliberately tracked evidence (re-included after the broad rules) ------
+# Public-domain sample clip and the Phase 7 validation renders/stems.
+!/samples/hgf_scene.webm
+!/samples/hgf_h264.mp4
+!/output/translated_hgf_scene.webm
+!/output/hgf_scene.srt
+!/temp/hgf_scene_full.wav
+!/temp/vocals.wav
+!/temp/accompaniment.wav
+!/temp/hgf_scene_merged_speech.wav
+!/temp/hgf_scene_final_mix.wav
+# Agent / editor scratch and per-turn state.
+/.agent
+/.context
+/.cursor
+/.cursorindexingignore
+/.vscode
+*.swp

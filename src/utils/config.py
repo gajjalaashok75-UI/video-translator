@@ -1,0 +1,742 @@
+import os
+import sys
+import logging
+import sysconfig
+from pathlib import Path
+from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv()
+
+# --- CRASH DEBUGGING LOGGER ---
+DEBUG_LOG_PATH = BASE_DIR / "debug_crash.log"
+def debug_log(msg):
+    """Writes immediate debug log to file for tracking hard crashes."""
+    try:
+        with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            import datetime
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"[{ts}] {msg}\n")
+            f.flush()
+    except Exception:
+        pass
+
+debug_log("--- SESSION START ---")
+debug_log(f"Python: {sys.version}")
+debug_log(f"Platform: {sys.platform}")
+
+
+def redact_secret(value: str | None) -> str:
+    """Returns '***' for non-empty values, 'None' for None. Safe for logging."""
+    if value and value.strip():
+        return "***"
+    return "None"
+
+
+# Directories.
+#
+# Each is overridable by environment so a deployment that must not write inside
+# the checkout (Colab, Kaggle, a read-only mount) can redirect the whole runtime
+# tree without patching code. The defaults are unchanged, so a local checkout
+# behaves exactly as before. `src.deploy.runtime` sets these for notebook use.
+TEMP_DIR = Path(os.getenv("TEMP_DIR", str(BASE_DIR / "temp")))
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", str(BASE_DIR / "output")))
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# Environment Variables
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+
+# =============================================================================
+# CROSS-PLATFORM PATH DISCOVERY
+# =============================================================================
+
+def _find_site_packages() -> Path | None:
+    """Find the site-packages directory cross-platform.
+    
+    Works for:
+    - Windows venv: venv/Lib/site-packages
+    - Linux/macOS venv: venv/lib/python3.x/site-packages
+    - System Python: /usr/lib/python3.x/site-packages
+    - Docker: /usr/local/lib/python3.x/dist-packages
+    """
+    import site
+    
+    # 1. Try site.getsitepackages() first (works in most environments)
+    try:
+        for sp in site.getsitepackages():
+            p = Path(sp)
+            if p.exists():
+                return p
+    except AttributeError:
+        pass  # Some virtualenvs don't have getsitepackages()
+    
+    # 2. Try sysconfig as fallback
+    try:
+        sp = sysconfig.get_path('purelib')
+        if sp:
+            p = Path(sp)
+            if p.exists():
+                return p
+    except Exception:
+        pass
+    
+    # 3. Legacy fallback: check common venv paths relative to BASE_DIR
+    if sys.platform == 'win32':
+        candidates = [BASE_DIR / "venv" / "Lib" / "site-packages"]
+    else:
+        # Linux/macOS: lib/python3.x/site-packages
+        py_ver = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        candidates = [
+            BASE_DIR / "venv" / "lib" / py_ver / "site-packages",
+            BASE_DIR / "venv" / "lib64" / py_ver / "site-packages",
+        ]
+    
+    for c in candidates:
+        if c.exists():
+            return c
+    
+    return None
+
+
+def _get_cuda_roots() -> list[Path]:
+    """Discover CUDA installations cross-platform.
+    
+    Priority:
+    1. CUDA_HOME / CUDA_PATH environment variables
+    2. Standard OS-specific locations
+    """
+    roots = []
+    
+    # Check environment variables first
+    for env_var in ["CUDA_HOME", "CUDA_PATH"]:
+        cuda_env = os.environ.get(env_var)
+        if cuda_env:
+            p = Path(cuda_env)
+            if p.exists():
+                debug_log(f"Found {env_var}: {p}")
+                # Avoid CUDA 11.x when we need 12.x
+                if "v11.8" not in str(p) and "v11" not in str(p):
+                    roots.append(p)
+                else:
+                    debug_log(f"Skipping conflicting CUDA path: {p}")
+    
+    # Platform-specific standard locations
+    if sys.platform == "win32":
+        toolkit_base = Path(r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA")
+        if toolkit_base.exists():
+            # Prefer highest 12.x version
+            cuda_dirs = sorted(
+                [d for d in toolkit_base.iterdir() if d.is_dir() and d.name.startswith("v12")],
+                reverse=True
+            )
+            for d in cuda_dirs:
+                if d not in roots:
+                    roots.append(d)
+    elif sys.platform == "linux":
+        for candidate in [
+            Path("/usr/local/cuda"),
+            *sorted(Path("/usr/local").glob("cuda-12.*"), reverse=True),
+        ]:
+            if candidate.exists() and candidate not in roots:
+                roots.append(candidate)
+    
+    return roots
+
+
+# Windows DLL loading fix for CUDA conflicts between torch and ctranslate2
+def setup_zlib_dll():
+    """Adds src/lib (zlibwapi) to DLL path for CTranslate2."""
+    if sys.platform != "win32": return
+    
+    _src_lib = BASE_DIR / "src" / "lib"
+    print(f"[Config] Checking src/lib: {_src_lib}")
+    debug_log(f"Checking src/lib: {_src_lib}")
+    
+    if _src_lib.exists():
+        try:
+            os.add_dll_directory(str(_src_lib))
+            print(f"[Config] Added DLL directory: {_src_lib}")
+            debug_log(f"Added DLL directory: {_src_lib}")
+        except Exception as e:
+            print(f"[Config] Failed to add src/lib: {e}")
+            debug_log(f"Failed to add src/lib: {e}")
+    else:
+        print(f"[Config] src/lib not found!")
+        debug_log("src/lib not found!")
+
+def setup_nvidia_dlls():
+    """
+    Adds torch/lib paths for dependencies.
+    """
+    if sys.platform != "win32": return
+    
+    _site_packages = _find_site_packages()
+    if not _site_packages:
+        debug_log("Could not find site-packages for NVIDIA DLL setup")
+        return
+    
+    # Add torch/lib (Critical: contains matching cuDNN/cuBLAS/zlibwapi)
+    _torch_lib = _site_packages / "torch" / "lib"
+    print(f"[Config] Checking torch/lib: {_torch_lib}")
+    debug_log(f"Checking torch/lib: {_torch_lib}")
+    
+    if _torch_lib.exists():
+        try:
+            os.add_dll_directory(str(_torch_lib))
+            print(f"[Config] Added DLL directory: {_torch_lib}")
+            debug_log(f"Added DLL directory: {_torch_lib}")
+        except Exception as e:
+            print(f"[Config] Failed to add torch/lib: {e}")
+            debug_log(f"Failed to add torch/lib: {e}")
+    else:
+        print(f"[Config] torch/lib not found at expected path: {_torch_lib}")
+        debug_log(f"torch/lib not found at expected path: {_torch_lib}")
+
+    # Fallback to system CUDA only if needed.
+    # CRITICAL: Do NOT add multiple conflicting CUDA versions.
+    # Uses _get_cuda_roots() for cross-platform CUDA discovery.
+    
+    for cuda_root in _get_cuda_roots():
+        bin_path = cuda_root / "bin"
+        if bin_path.exists():
+            try:
+                os.add_dll_directory(str(bin_path))
+                print(f"[Config] Added System CUDA: {bin_path}")
+                debug_log(f"Added System CUDA: {bin_path}")
+            except Exception as e:
+                 debug_log(f"Failed to add System CUDA {bin_path}: {e}")
+
+def deactivate_conflicting_ctranslate2_dlls():
+    """
+    Temporarily renames conflicting CUDA/cuDNN DLLs inside ctranslate2 package directory to .bak
+    so that ctranslate2.dll resolves them to the compatible versions in torch/lib instead.
+    """
+    if sys.platform != "win32":
+        return
+    
+    _site_packages = _find_site_packages()
+    if not _site_packages:
+        return
+        
+    _ctranslate2_dir = _site_packages / "ctranslate2"
+    if not _ctranslate2_dir.exists():
+        return
+        
+    conflicting_dlls = [
+        "cublas64_12.dll",
+        "cublasLt64_12.dll",
+        "cudnn64_9.dll"
+    ]
+    
+    for name in conflicting_dlls:
+        dll_path = _ctranslate2_dir / name
+        if dll_path.exists():
+            bak_path = _ctranslate2_dir / f"{name}.bak"
+            try:
+                if bak_path.exists():
+                    try:
+                        os.remove(str(bak_path))
+                    except Exception:
+                        pass
+                os.rename(str(dll_path), str(bak_path))
+                print(f"[Config] Deactivated conflicting ctranslate2 DLL: {name}")
+                debug_log(f"Deactivated conflicting ctranslate2 DLL: {name}")
+            except Exception as e:
+                print(f"[Config] Warning: Failed to deactivate {name}: {e}")
+                debug_log(f"Warning: Failed to deactivate {name}: {e}")
+
+def pre_load_ctranslate2_dlls():
+    """
+    Pre-loads compatible CUDA/cuDNN DLLs from torch/lib and remaining ctranslate2 DLLs
+    using absolute paths in correct dependency order to prevent OS version conflicts.
+    """
+    if sys.platform != "win32":
+        return
+    
+    _site_packages = _find_site_packages()
+    if not _site_packages:
+        return
+    
+    _torch_lib = _site_packages / "torch" / "lib"
+    _ctranslate2_dir = _site_packages / "ctranslate2"
+    
+    if not _ctranslate2_dir.exists():
+        return
+        
+    import ctypes
+    
+    # 1. Pre-load crucial CUDA runtimes and cublas from torch/lib first
+    if _torch_lib.exists():
+        torch_dependencies = [
+            "nvJitLink_120_0.dll",
+            "cudart64_12.dll",
+            "cublasLt64_12.dll",
+            "cublas64_12.dll",
+            "cudnn64_9.dll"
+        ]
+        print("[Config] Pre-loading CUDA runtime dependencies from torch/lib...")
+        debug_log("Pre-loading CUDA runtime dependencies from torch/lib...")
+        for name in torch_dependencies:
+            dll_path = _torch_lib / name
+            if dll_path.exists():
+                try:
+                    ctypes.CDLL(str(dll_path))
+                    print(f"[Config] Successfully pre-loaded from torch/lib: {name}")
+                    debug_log(f"Successfully pre-loaded from torch/lib: {name}")
+                except Exception as e:
+                    print(f"[Config] Warning: Failed to pre-load torch/lib dependency {name}: {e}")
+                    debug_log(f"Warning: Failed to pre-load torch/lib dependency {name}: {e}")
+                    
+    # 2. Pre-load remaining CTranslate2 DLLs (libiomp5md.dll and ctranslate2.dll)
+    ctranslate2_dlls = [
+        "libiomp5md.dll",
+        "ctranslate2.dll"
+    ]
+    
+    print("[Config] Pre-loading remaining CTranslate2 DLLs...")
+    debug_log("Pre-loading remaining CTranslate2 DLLs...")
+    
+    for name in ctranslate2_dlls:
+        dll_path = _ctranslate2_dir / name
+        if dll_path.exists():
+            try:
+                ctypes.CDLL(str(dll_path))
+                print(f"[Config] Successfully pre-loaded from ctranslate2: {name}")
+                debug_log(f"Successfully pre-loaded from ctranslate2: {name}")
+            except Exception as e:
+                print(f"[Config] Warning: Failed to pre-load ctranslate2 {name}: {e}")
+                debug_log(f"Warning: Failed to pre-load ctranslate2 {name}: {e}")
+
+# PHASE 1: Setup DLLs
+# CRITICAL: Load order matters! ctranslate2's own DLLs must be found FIRST
+# before torch/lib to prevent cuDNN/cuBLAS version conflicts.
+print(f"[Config] Initializing DLL paths... BASE_DIR={BASE_DIR}")
+
+# Cross-platform site-packages discovery
+_discovered_site_packages = _find_site_packages()
+if _discovered_site_packages:
+    _ctranslate2_dir = str(_discovered_site_packages / "ctranslate2")
+    _torch_lib = str(_discovered_site_packages / "torch" / "lib")
+else:
+    # Fallback to legacy Windows path
+    _ctranslate2_dir = str(BASE_DIR / "venv" / "Lib" / "site-packages" / "ctranslate2")
+    _torch_lib = str(BASE_DIR / "venv" / "Lib" / "site-packages" / "torch" / "lib")
+    debug_log("Warning: Could not discover site-packages, using legacy Windows fallback")
+
+# PATH order: ctranslate2 FIRST, then torch/lib, then original PATH.
+# ctranslate2's cudnn64_9.dll (260KB stub) needs torch/lib's full cuDNN DLLs
+# for implicit dependency resolution. os.add_dll_directory() only helps direct
+# ctypes.CDLL loads, NOT implicit dependencies. PATH must include torch/lib.
+_path_parts = []
+if os.path.isdir(_ctranslate2_dir):
+    _path_parts.append(_ctranslate2_dir)
+    print(f"[Config] Will prepend CTranslate2 dir to PATH: {_ctranslate2_dir}")
+    debug_log(f"Will prepend CTranslate2 dir to PATH: {_ctranslate2_dir}")
+
+if os.path.isdir(_torch_lib):
+    _path_parts.append(_torch_lib)
+    print(f"[Config] Will prepend torch/lib to PATH: {_torch_lib}")
+    debug_log(f"Will prepend torch/lib to PATH: {_torch_lib}")
+
+if _path_parts:
+    os.environ["PATH"] = os.pathsep.join(_path_parts) + os.pathsep + os.environ.get("PATH", "")
+
+# Also use add_dll_directory for direct ctypes.CDLL loads
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    for _d in [_ctranslate2_dir, _torch_lib]:
+        if os.path.isdir(_d):
+            try:
+                os.add_dll_directory(_d)
+            except Exception:
+                pass
+
+setup_zlib_dll()
+
+# Ensure torch/lib is added before pre-loading, so cuDNN stub dependencies can be resolved.
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    _torch_lib_path = Path(_torch_lib)
+    if _torch_lib_path.exists():
+        try:
+            os.add_dll_directory(str(_torch_lib_path))
+        except Exception:
+            pass
+
+deactivate_conflicting_ctranslate2_dlls()
+pre_load_ctranslate2_dlls()
+
+# PHASE 2: Load CTranslate2
+print("[Config] Importing ctranslate2...")
+import ctranslate2 
+print(f"[Config] CTranslate2 loaded successfully. Version: {ctranslate2.__version__}")
+
+# Add System CUDA paths after ctranslate2 has successfully loaded
+# to prevent DLL version conflicts during import.
+setup_nvidia_dlls()
+
+# PHASE 3: Shim
+def setup_cuda_dlls():
+    # Already done at module level
+    pass
+
+import torch
+# Device configuration
+def get_device() -> str:
+    """
+    Determines the best available device.
+    Checks if CUDA is available AND functional (compatible with installed PyTorch).
+    """
+    if os.getenv("USE_CUDA", "true").lower() != "true":
+        return "cpu"
+        
+    if not torch.cuda.is_available():
+        return "cpu"
+        
+    try:
+        # Functional test: Attempt to create a tensor on the device
+        # This catches "no kernel image is available" errors for unsupported architectures
+        t = torch.tensor([1.0]).to("cuda")
+        del t
+        return "cuda"
+    except Exception as e:
+        print(f"WARNING: CUDA is available but failed functioning test (likely architecture mismatch): {e}")
+        print("Falling back to CPU.")
+        return "cpu"
+
+DEVICE = get_device()
+# Device logic usually generic, but specific libraries check nicely.
+
+# Model Configurations
+WHISPER_MODEL_SIZE = "large-v3"
+
+# -----------------------------
+# Algorithm Parameters
+# -----------------------------
+
+# TTS Validation
+TTS_MIN_TEXT_LENGTH = 2
+TTS_MIN_AUDIO_SIZE = 100  # bytes
+REFERENCE_RMS_THRESHOLD = 0.02
+REFERENCE_VAR_THRESHOLD = 1e-5
+XTTS_MIN_DURATION = 2.0  # seconds
+F5_MIN_DURATION = 1.0    # seconds
+
+# Speaker reference selection (see src/audio/speaker_reference.py).
+# Cloning models want roughly 6-12s of clean speech; below ~3s the speaker
+# embedding is unstable and above ~15s F5 truncates internally.
+REFERENCE_TARGET_MIN = 6.0
+REFERENCE_TARGET_MAX = 12.0
+REFERENCE_HARD_MIN = 3.0
+# A pause longer than this breaks a candidate window, so we never splice across
+# a scene cut or a long silence.
+REFERENCE_MAX_INTERNAL_GAP = 0.6
+# Fraction of a window another speaker may cover before we refuse to use it.
+# Diarization does not separate overlapping voices, so overlapped audio is not
+# a usable reference.
+REFERENCE_OVERLAP_REJECT = 0.30
+REFERENCE_INTRO_PENALTY_BEFORE = 2.0
+REFERENCE_CLIPPING_MAX = 0.01
+REFERENCE_SILENCE_MAX = 0.5
+REFERENCE_AUDIO_PROBE_TOP_K = 5
+# Points a candidate earns for filling the whole target band (6-12s). It has to
+# outweigh the confidence spread between windows, otherwise a short but very
+# confident clip beats a clean clip inside the band. Real VoxConverse clips
+# showed the 6-12s hit rate going 4/11 -> 10/11 when this rose from 0.3 to 1.0.
+REFERENCE_DURATION_WEIGHT = 1.0
+# IndicF5 conditions on both the reference waveform and its transcript, so it
+# needs a longer, better-formed reference than plain F5 to clone reliably.
+INDICF5_MIN_DURATION = 3.0  # seconds
+
+# ---------------------------------------------------------------------------
+# Translation (Phase 4)
+# ---------------------------------------------------------------------------
+# Local NLLB-200 checkpoint used for Indic translation routes. One ungated
+# M2M-100 model covers 200 languages and translates Indic<->Indic directly.
+NLLB_MODEL_ID = os.getenv("NLLB_MODEL_ID", "facebook/nllb-200-distilled-600M")
+# Set to a path to force an offline copy, or leave empty to use the HF cache.
+NLLB_LOCAL_FILES_ONLY = os.getenv("NLLB_LOCAL_FILES_ONLY", "").strip().lower() in ("1", "true", "yes")
+
+# ---------------------------------------------------------------------------
+# Timing / duration synchronisation (Phase 5)
+# ---------------------------------------------------------------------------
+# ratio = generated_duration / target_duration. Bands classify how far a
+# generated line is from its dialogue window.
+#
+# These are deliberately asymmetric. Speech compresses further than it slows
+# before it sounds wrong, so the acceptable window extends higher above 1.0 than
+# below it. Values are heuristic (chosen from the ratio ranges the old code
+# tolerated plus listening checks on the librosa path), not perceptual results
+# from a formal listening test.
+TIMING_SHORT_RATIO = 0.75          # below this: clearly too short
+TIMING_LONG_RATIO = 1.25           # above this: clearly too long
+TIMING_EXTREME_SHORT_RATIO = 0.5   # below this: text/TTS is not going to fit
+TIMING_EXTREME_LONG_RATIO = 1.75   # above this: stretch alone will sound bad
+
+# Bounds for lossy time-stretching. Beyond these the audio is audibly wrong
+# (chipmunk/rushed or slurred), so the pipeline stops stretching and reports the
+# overflow instead of hiding it.
+TIMING_MAX_STRETCH = 1.25   # fastest we will play a line to make it fit
+TIMING_MIN_STRETCH = 0.85   # slowest we will play a line to make it fit
+
+# A backend is asked for an exact duration only when the natural length is off
+# by more than this. Asking on every line wastes the model's own prosody.
+TIMING_NATIVE_FIT_TOLERANCE = 0.05
+
+# Text-level shortening (Phase 4 `concise`) is triggered when a segment is
+# predicted to overrun by this much. Kept above TIMING_LONG_RATIO so we do not
+# rewrite text that a small stretch would have fixed anyway.
+TIMING_SHORTEN_TRIGGER = 1.30
+TIMING_MAX_SHORTEN_ROUNDS = 1
+
+# How much of the gap to the next line a segment may use before we call it a
+# collision. A segment may breathe into trailing silence; it may not talk over
+# the next speaker.
+TIMING_GAP_USE = 1.0
+
+# Segmentation Merging
+MERGE_MIN_DURATION = 2.0 # seconds
+MERGE_MAX_GAP = 0.5      # seconds
+
+# Fallbacks
+DUMMY_AUDIO_DURATION_MAX = 5.0 # seconds
+
+from src.utils import languages
+
+def get_language_code(name: str) -> str:
+    return languages.get_language_code(name)
+
+# -----------------------------
+# Processing Parameters (Refactored from Magic Numbers)
+# -----------------------------
+DEMUCS_CHUNK_SECONDS = 10
+DEMUCS_OVERLAP_SECONDS = 1
+
+WAV2LIP_BOX_SMOOTH_WINDOW = 5
+
+# Chunking (seconds)
+CHUNK_DURATION = int(os.getenv("CHUNK_DURATION", "300"))  # 5 minutes default
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "2"))  # 2 second overlap
+
+OCR_INTERVAL_DEFAULT = 1.0
+
+# ---------------------------------------------------------------------------
+# Durable jobs (Phase 6)
+# ---------------------------------------------------------------------------
+# Every render gets a stable job id and its own directory under JOBS_DIR, so
+# intermediate results survive a process restart. See src/core/jobs.py.
+JOBS_DIR = Path(os.getenv("JOBS_DIR", str(BASE_DIR / "jobs")))
+JOBS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Bump when the manifest's shape changes in a way older readers cannot handle.
+JOB_SCHEMA_VERSION = 1
+
+# Version of the stage-fingerprint scheme. Recorded in the manifest source and
+# folded into every fingerprint, so a change to how fingerprints are computed
+# cannot let a stale cached stage match a new one.
+FINGERPRINT_SCOPE = "phase7-scoped-1"
+
+# Stages, in dependency order. Used for invalidation: changing a stage's inputs
+# discards that stage and everything after it, and nothing before it.
+JOB_STAGES = (
+    "source", "extraction", "separation", "transcription", "diarization",
+    "references", "translation", "tts", "sync", "subtitles", "lipsync", "final",
+)
+
+# Which run-configuration keys each stage's work depends on. A stage's
+# fingerprint folds in the keys of every stage up to and including itself, so
+# changing one stage's settings leaves upstream cached work untouched while
+# still invalidating that stage and everything downstream of it. Without this
+# scoping, flipping `enable_lipsync` would re-run Demucs and ASR.
+#
+# Keys not listed here (e.g. the UI-only `chunk_duration`) do not participate.
+STAGE_CONFIG_KEYS = {
+    "source": (),
+    "extraction": (),
+    "separation": ("audio_model_name",),
+    "transcription": ("transcription_model_name", "enable_vad",
+                      "vad_min_silence_duration_ms", "transcription_beam_size"),
+    "diarization": ("enable_diarization", "diarization_model",
+                    "min_speakers", "max_speakers"),
+    "references": (),
+    "translation": ("target_lang", "translation_model_name", "optimize_translation",
+                    "context_model_name", "source_lang"),
+    "tts": ("tts_model_name", "tts_voice", "tts_enable_cfg",
+            "enable_time_stretch"),
+    "sync": ("enable_audio_enhancement",),
+    "subtitles": ("subtitle_mode",),
+    "lipsync": ("enable_lipsync", "lipsync_model_name", "live_portrait_mode"),
+    "final": ("enable_visual_translation", "ocr_model_name"),
+}
+
+
+def config_keys_through(stage: str) -> tuple:
+    """Run-config keys for `stage` and every stage before it, in order."""
+    if stage not in JOB_STAGES:
+        return ()
+    keys = []
+    for name in JOB_STAGES:
+        for key in STAGE_CONFIG_KEYS.get(name, ()):
+            if key not in keys:
+                keys.append(key)
+        if name == stage:
+            break
+    return tuple(keys)
+
+
+def stages_owning_config_keys(keys) -> list:
+    """JOB_STAGES-ordered stages that own any of `keys`, or [] when none do."""
+    keys = set(keys or ())
+    return [name for name in JOB_STAGES
+            if set(STAGE_CONFIG_KEYS.get(name, ())) & keys]
+
+
+# Config keys that may be changed on an already-COMPLETE job without redoing
+# any of the expensive upstream work: flipping them re-renders only the sticky
+# stages (lip-sync and the final mux). Changing anything else on a finished job
+# is refused, because its cached output was made under the old settings.
+RE_RENDERABLE_CONFIG_KEYS = (
+    "enable_lipsync", "lipsync_model_name", "live_portrait_mode",
+    "enable_visual_translation", "ocr_model_name",
+    "enable_audio_enhancement",
+)
+
+# ---------------------------------------------------------------------------
+# Internal quality presets (P5)
+# ---------------------------------------------------------------------------
+# A preset is a named bundle of *quality* configuration, applied only when a
+# caller explicitly selects it. It never touches anything that determines what
+# is said or whose voice says it: source/target language, the translation or
+# transcription backend, speaker references, or dialogue text. It also never
+# touches ASR settings (transcription model, beam size), so selecting a preset
+# cannot invalidate transcription, diarization, translation, or TTS.
+#
+# What each preset changes, exactly:
+#
+#   FAST      enable_lipsync=False
+#             lipsync_model_name="Wav2Lip-GAN (Low Quality - Fast)"
+#             enable_audio_enhancement=False
+#     Core dubbing only, cheapest safe settings, no enhancement. Fastest on CPU.
+#
+#   BALANCED  enable_lipsync=True
+#             lipsync_model_name="Wav2Lip-GAN (Low Quality - Fast)"
+#             enable_audio_enhancement=False
+#     Recommended production settings: standard lip-sync, no audio enhancement
+#     (enhancement stays opt-in, which is what "bounded" means here).
+#
+#   HIGH      enable_lipsync=True
+#             lipsync_model_name="LivePortrait (High Quality - Slow)"
+#             live_portrait_mode="ort"
+#             enable_audio_enhancement=True
+#     Highest supported quality: LivePortrait face animation plus VoiceFixer
+#     speech restoration.
+#
+# Every key above is owned by the `sync`, `lipsync`, or `final` stage, so a
+# preset change invalidates only those stages and their downstream output.
+QUALITY_PRESETS = {
+    "FAST": {
+        "enable_lipsync": False,
+        "lipsync_model_name": "Wav2Lip-GAN (Low Quality - Fast)",
+        "enable_audio_enhancement": False,
+    },
+    "BALANCED": {
+        "enable_lipsync": True,
+        "lipsync_model_name": "Wav2Lip-GAN (Low Quality - Fast)",
+        "enable_audio_enhancement": False,
+    },
+    "HIGH": {
+        "enable_lipsync": True,
+        "lipsync_model_name": "LivePortrait (High Quality - Slow)",
+        "live_portrait_mode": "ort",
+        "enable_audio_enhancement": True,
+    },
+}
+
+QUALITY_PRESET_NAMES = tuple(QUALITY_PRESETS)
+
+# How subtitles are delivered. A named mode rather than two booleans, because
+# the modes are mutually exclusive in the way that matters: burning subtitles
+# into the frames is destructive of the picture and slow, so it must be a
+# deliberate choice and never something a stray second flag turns on.
+#
+#   none      no subtitles at all
+#   external  sidecar .srt and .vtt files next to the video (the default)
+#   embedded  the sidecar files *and* a soft subtitle track inside the video,
+#             which a player can toggle
+#   burned    the sidecar files *and* subtitles rendered into the picture,
+#             which every player shows and no player can turn off
+SUBTITLE_MODES = ("none", "external", "embedded", "burned")
+DEFAULT_SUBTITLE_MODE = "external"
+
+# Keys a preset is allowed to set. Anything outside this set — in particular
+# the language, backend, reference, or text keys — would change what the dub
+# says, which a quality preset must never do.
+PRESET_ALLOWED_KEYS = frozenset({
+    "enable_lipsync", "lipsync_model_name", "live_portrait_mode",
+    "enable_audio_enhancement", "enable_visual_translation", "ocr_model_name",
+})
+
+
+def preset_config(name: str) -> dict:
+    """
+    The configuration a preset sets, or ValueError for an unknown name.
+
+    Raises rather than falling back to a default: a typo in the preset name
+    should surface, not silently produce a run at the wrong quality level.
+    """
+    key = (name or "").strip().upper()
+    if key not in QUALITY_PRESETS:
+        raise ValueError(
+            f"Unknown quality preset {name!r}; expected one of {QUALITY_PRESET_NAMES}")
+    cfg = dict(QUALITY_PRESETS[key])
+    unexpected = set(cfg) - PRESET_ALLOWED_KEYS
+    if unexpected:  # a programming error in this module, not caller input
+        raise AssertionError(f"preset {key} sets non-quality keys: {sorted(unexpected)}")
+    return cfg
+
+
+# Default number of attempts for a transient failure (attempt 1 = first try).
+RETRY_TRANSIENT_ATTEMPTS = 3
+RETRY_TRANSIENT_BACKOFF = 0.5   # seconds, doubled each attempt
+RETRY_SEGMENT_ATTEMPTS = 2      # per-segment (TTS/translation) attempts
+
+# Cleanup levels for finished or abandoned jobs.
+#   KEEP_ALL       - keep every intermediate (default; safest for debugging)
+#   KEEP_RESUMABLE - keep what resume needs, drop bulky regenerable intermediates
+#   FINAL_ONLY     - keep the manifest and the final video, drop the rest
+CLEANUP_KEEP_ALL = "KEEP_ALL"
+CLEANUP_KEEP_RESUMABLE = "KEEP_RESUMABLE"
+CLEANUP_FINAL_ONLY = "FINAL_ONLY"
+
+def validate_path(path: str | Path, must_exist: bool = False, allowed_dirs: list[Path] | None = None) -> Path:
+    """
+    Validates and resolves a path, checking existence and containment.
+    
+    :param path: The input path string or Path object.
+    :param must_exist: If True, raises FileNotFoundError if path doesn't exist.
+    :param allowed_dirs: Optional list of directories the path must be inside.
+    :return: Resolved absolute Path object.
+    :raises FileNotFoundError: If must_exist is True and path is missing.
+    :raises ValueError: If path is outside allowed_dirs.
+    """
+    try:
+        resolved = Path(path).resolve()
+    except Exception as e:
+        raise ValueError(f"Invalid path format: {path}") from e
+
+    if must_exist and not resolved.exists():
+        raise FileNotFoundError(f"Path does not exist: {resolved}")
+    
+    if allowed_dirs:
+        # Check if resolved path starts with any allowed directory
+        is_allowed = any(str(resolved).startswith(str(d.resolve())) for d in allowed_dirs)
+        if not is_allowed:
+             raise ValueError(f"Path outside allowed directories: {resolved}")
+             
+    return resolved

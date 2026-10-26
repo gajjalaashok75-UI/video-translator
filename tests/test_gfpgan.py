@@ -1,0 +1,22 @@
+
+import unittest
+import os
+import pytest
+from src.processing.wav2lip import Wav2LipSyncer
+
+@pytest.mark.requires_models
+class TestGFPGAN(unittest.TestCase):
+    def test_load_gfpgan(self):
+        syncer = Wav2LipSyncer()
+        syncer.load_gfpgan()
+        
+        # We can't guarantee download in CI/Test env without network, 
+        # but if it fails it sets restorer to None.
+        # We just want to ensure it doesn't crash on import/call.
+        if syncer.restorer is None:
+             import logging
+             logging.warning("Skipping GFPGAN test: failed to load (likely dependency or model issue)")
+             self.skipTest("GFPGAN failed to load (likely dependency or model issue). Check console output.")
+
+if __name__ == "__main__":
+    unittest.main()
