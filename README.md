@@ -454,47 +454,51 @@ HF_TOKEN=your_huggingface_token  # Required for Llama 3.1, NeMo
 
 ```mermaid
 flowchart TD
-    Video[Input Video] --> Extract[Extract Audio via FFmpeg]
-    Extract --> Separator[Audio Separator - HDemucs]
+    Video["Input Video"] --> Extract["Extract Audio via FFmpeg"]
+    Extract --> Separator["Audio Separator - HDemucs"]
 
-    Separator --> Vocals[Vocal Track]
-    Separator --> Background[Background Track]
+    Separator --> Vocals["Vocal Track"]
+    Separator --> Background["Background Track"]
 
-    Vocals --> VAD[VAD Preprocessing - Silero VAD]
-    VAD --> Transcribe[Transcribe - Faster-Whisper]
-    Transcribe --> Segments[Text Segments]
-    Segments --> Merge[Smart Segment Merging]
+    Vocals --> VAD["VAD Preprocessing - Silero VAD"]
+    VAD --> Transcribe["Transcribe - Faster-Whisper"]
+    Transcribe --> Segments["Text Segments"]
+    Segments --> Merge["Smart Segment Merging"]
 
-    Vocals -.-> Diarize[Diarize - PyAnnote / SpeechBrain]
-    Diarize -.-> SpeakerProfiling[Speaker Profiling]
+    Vocals -.-> Diarize["Diarize - PyAnnote / SpeechBrain"]
+    Diarize -.-> SpeakerProfiling["Speaker Profiling"]
 
-    Merge --> Translate[Translate - NLLB / HY-MT / Llama / ALMA]
-    Translate --> SRT[Export SRT Subtitles]
+    Merge --> Translate["Translate - NLLB / HY-MT / Llama / ALMA"]
+    Translate --> SRT["Export SRT Subtitles"]
 
-    Translate --> TTS[Neural TTS - IndicF5 / XTTS / Edge / F5]
+    Translate --> TTS["Neural TTS - IndicF5 / XTTS / Edge / F5"]
     SpeakerProfiling -.-> TTS
-    TTS -> TTSAudio[Generated Speech Clips]
+    TTS --> TTSAudio["Generated Speech Clips"]
 
-    TTSAudio --> EQ[EQ Spectral Matching]
-    EQ --> Sync[Synchronize - PyRubberband]
-    Sync --> MergedSpeech[Merged Speech Track]
+    TTSAudio --> EQ["EQ Spectral Matching"]
+    EQ --> Sync["Synchronize - PyRubberband"]
+    Sync --> MergedSpeech["Merged Speech Track"]
 
-    MergedSpeech -.-> VoiceEnhance[Voice Enhancement - VoiceFixer]
+    MergedSpeech -.-> VoiceEnhance["Voice Enhancement - VoiceFixer"]
     VoiceEnhance -.-> Mix
-    MergedSpeech --> Mix[Mix Audio]
+    MergedSpeech --> Mix["Mix Audio"]
     Background --> Mix
 
-    Mix --> FinalAudio[Final Audio Track]
+    Mix --> FinalAudio["Final Audio Track"]
 
-    Video --> VisualTrans[Visual Translation - PaddleOCR / EasyOCR]
-    VisualTrans --> LipSync[Lip-Sync - LivePortrait / Wav2Lip / GFPGAN]
+    Video --> VisualTrans["Visual Translation - PaddleOCR / EasyOCR"]
+    VisualTrans --> LipSync["Lip-Sync - LivePortrait / Wav2Lip / GFPGAN"]
     MergedSpeech -.-> LipSync
 
-    LipSync --> Mux[Mux with Video - FFmpeg]
+    LipSync --> Mux["Mux with Video - FFmpeg"]
     FinalAudio --> Mux
 
-    Mux --> Output[Translated Output Video]
+    Mux --> Output["Translated Output Video"]
 ```
+
+Use LivePortrait (HD) lip-sync for cinema-quality dubbing that doesn't look like a bad overdub.
+
+See **[LivePortrait GPU Acceleration](LivePortrait%20GPU%20Acceleration.md)** for TensorRT acceleration and VRAM guidance.
 
 ---
 
