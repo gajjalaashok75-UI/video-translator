@@ -184,6 +184,22 @@ import sys
 
 PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync,ocr]"
 
+# Check the interpreter *before* spending minutes on pip. Several pinned
+# extras have no cp313 wheels and never will (paddlepaddle-gpu==2.6.1 on
+# Linux, paddlepaddle==2.6.2 elsewhere, numpy<2.0.0 as a source build), so on
+# 3.13 the install is doomed regardless of what pip tries. Fail fast with the
+# package named, instead of letting pip churn for six minutes first.
+if sys.version_info >= (3, 13):
+    failing = ("paddlepaddle-gpu==2.6.1 (Linux), "
+               "paddlepaddle==2.6.2 (other platforms), "
+               "numpy<2.0.0 (source build)")
+    raise SystemExit(
+        "This stack is only verified on Python 3.10-3.12. Colab and Kaggle "
+        "now default to Python 3.13, and the following pinned extras have no "
+        "cp313 wheels: " + failing + ". Switch the runtime to Python 3.11 "
+        "(Colab: Runtime -> Change runtime type -> Python 3.11 + GPU; "
+        "Kaggle: Settings -> Python version -> 3.11) and re-run this cell.")
+
 # `-e` so the repo is importable as `src.*` and edits are picked up.
 cmd = [
     sys.executable, "-m", "pip", "install",
@@ -207,17 +223,6 @@ if proc.returncode != 0:
     print("=" * 60)
     print("INSTALL FAILED. Full pip output above this line.")
     print("=" * 60)
-    # `pyproject.toml` caps the interpreter at <3.13, and several extras in
-    # this stack (paddlepaddle 2.6.x, opencv 4.10.0.84, the pinned torch
-    # wheel) have no cp313 wheels yet, so pip falls back to a source build and
-    # fails. Surface that plainly instead of burying it in the scrollback.
-    if sys.version_info >= (3, 13):
-        raise SystemExit(
-            "This stack is only verified on Python 3.10-3.12: several extras "
-            "(paddlepaddle 2.6.x, opencv 4.10.0.84, the pinned torch wheel) "
-            "have no cp313 wheels, so pip tries to build from source and "
-            "fails. Switch the runtime to Python 3.11 (Colab: Runtime -> "
-            "Change runtime type -> Python 3.11 + GPU) and re-run this cell.")
     raise SystemExit(
         "The install failed. Read the full pip output above this line for the "
         "real cause (a missing wheel, an unresolvable pin, a gated model). "

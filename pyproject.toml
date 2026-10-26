@@ -107,13 +107,10 @@ tts = [
 # OCR — Visual text detection
 # =============================================================================
 ocr = [
-    # PaddlePaddle ships cp313 wheels only in newer releases, so the pins below
-    # are lower bounds rather than exact versions: a too-tight pin refuses to
-    # install on Python 3.13 (Colab) while still allowing the verified 2.6.x
-    # line on 3.10-3.12.
-    "paddlepaddle>=2.6.2; sys_platform != 'linux'",
-    "paddlepaddle-gpu>=2.6.1; sys_platform == 'linux'",
-    "paddleocr>=2.8.1",
+    # PaddlePaddle: GPU on Linux, CPU on Windows/macOS
+    "paddlepaddle-gpu==2.6.1; sys_platform == 'linux'",
+    "paddlepaddle==2.6.2; sys_platform != 'linux'",
+    "paddleocr==2.8.1",
     "easyocr",
     "langdetect",
 ]
