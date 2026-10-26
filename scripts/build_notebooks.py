@@ -175,6 +175,12 @@ available rather than falling back: Whisper transcription (via
 separation, speaker diarization, lip-sync and on-screen text translation.
 Diarization and IndicF5 voice cloning need a Hugging Face token (see step 5);
 the rest runs with no keys.
+
+The cell runs in four phases so an *optional* enhancement that cannot be
+built on this Python version never aborts the render: the core pipeline,
+then GFPGAN face restoration, then OCR, then the React UI. On Python 3.13
+PaddleOCR has no wheel, so the visual-translation stage uses EasyOCR
+instead, and the UI build is skipped if npm fails.
 """
 
 INSTALL_CODE = """
@@ -188,6 +194,7 @@ import sys
 #                        builds with no cp313 wheel; skipped on failure)
 #   3. ocr             — PaddleOCR needs Python <=3.12, so on 3.13 only EasyOCR
 #                        is installed (the stage falls back automatically)
+#   4. frontend        — the React UI is a build artifact, not a pip package
 CORE_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync]"
 cmd = [
     sys.executable, "-m", "pip", "install",
@@ -237,6 +244,21 @@ if ocr_proc.returncode != 0:
     print("OCR install failed; visual text translation will be unavailable.")
 else:
     print("OCR install complete.")
+
+# The React UI is a build artifact, not a pip package, so it is built here
+# rather than declared as an extra. Best-effort: the API serves fine without
+# it, but the browser UI is the point of a hosted deployment.
+print()
+print("Building the React UI (best-effort)...")
+frontend_proc = subprocess.run(
+    ["bash", "-c",
+     "cd frontend && npm install --silent && npm run build"],
+    text=True)
+if frontend_proc.returncode != 0:
+    print("Frontend build skipped; the API is running at the URL above "
+          "with no browser UI (open /docs for the API schema).")
+else:
+    print("Frontend build complete; the full app is at the URL above.")
 """
 
 START_MD = """
