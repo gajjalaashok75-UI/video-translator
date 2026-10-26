@@ -162,21 +162,22 @@ INSTALL_MD = """
 ## 3. Install the application
 
 Installs the package with the extras a GPU render needs: the CUDA PyTorch build,
-the API layer, the default TTS and translation backends, and audio processing.
-This is the slow cell.
+the API layer, the default TTS and translation backends, audio processing, and
+the optional stages the notebook advertises. This is the slow cell.
 
-The extras are chosen so the **default** pipeline works end to end: Whisper
-transcription (via `translation-llm`), Google/NLLB translation, Edge TTS, and
-Demucs vocal separation. Optional stages that need a Hugging Face token
-(diarization) or extra downloads (visual text translation) are left out; the app
-reports them as unavailable rather than failing.
+Every stage the UI can offer is installed here so the app reports it as
+available rather than falling back: Whisper transcription (via
+`translation-llm`), Google/NLLB translation, Edge TTS, Demucs vocal
+separation, speaker diarization, lip-sync and on-screen text translation.
+Diarization and IndicF5 voice cloning need a Hugging Face token (see step 5);
+the rest runs with no keys.
 """
 
 INSTALL_CODE = """
 import subprocess
 import sys
 
-PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing]"
+PIP_EXTRAS = "[gpu-cu124,api,tts,translation-llm,audio-processing,diarization,lipsync,ocr]"
 
 # `-e` so the repo is importable as `src.*` and edits are picked up.
 cmd = [
@@ -239,13 +240,20 @@ lists everything this session has produced.
 
 ### Optional: a Hugging Face token
 
-Speaker diarization and some local translation models need a token. Set it
-before starting the server, then restart the server cell:
+Speaker diarization, IndicF5 voice cloning (the 11 Indian languages) and the
+Llama/ALMA translation models are gated on Hugging Face. Set it before
+starting the server, then restart the server cell:
 
 ```python
 import os
 os.environ["HF_TOKEN"] = "hf_..."   # or use the Secrets panel on the left
 ```
+
+Without it those stages report as unavailable and the pipeline falls back:
+diarization runs as a single speaker, Indian languages speak via Edge TTS
+instead of a cloned IndicF5 voice, and Llama/ALMA translation is not offered.
+Lip-sync (Wav2Lip/LivePortrait) and on-screen text translation (PaddleOCR) are
+installed by this notebook and work with no token.
 """
 
 STOP_MD = """
@@ -269,7 +277,7 @@ TROUBLESHOOT_MD = """
 | Out of GPU memory during a render | Use the `FAST` preset (no lip-sync), or process a shorter clip. |
 | `ffmpeg not found` | Re-run step 1; on Colab and Kaggle the cell installs it. |
 | The URL does not open | The link is only reachable from inside the VM. Re-run step 4 to get a fresh proxy URL, and keep the notebook open. |
-| Diarization or Llama translation unavailable | Set `HF_TOKEN` (see step 5) and restart the server. |
+| Diarization, Llama translation or IndicF5 cloning unavailable | Set `HF_TOKEN` (see step 5) and restart the server. |
 """
 
 
