@@ -199,6 +199,10 @@ cython_debug/
 /temp/*
 /output/*
 /samples
+# Project notes that are not part of the codebase.
+REMAINING_PHASES.md
+RUNNING.md
+LivePortrait GPU Acceleration.md
 
 # Build / runtime caches (not wanted)
 __pycache__/
